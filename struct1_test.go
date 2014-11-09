@@ -37,9 +37,53 @@ type ExampleStruct1 struct {
 
 func TestSimpleStructExtraction(t *testing.T) {
 
-	cv.Convey("Given a compilable (syntax correct) golang (Go) source file", t, func() {
-		cv.Convey("then we should be able properly to extract simple structs, without recursion or embedding", func() {
-			//cv.So(res, cv.ShouldEqual, false)
+	cv.Convey("Given a parsable golang source file", t, func() {
+		cv.Convey("then we can extract an empty struct", func() {
+
+			ex0 := `
+type Empty1 struct {
+}`
+			cv.So(ExtractString(ex0), cv.ShouldEqual, `type Empty1 struct { } `)
+
 		})
+		cv.Convey("then we can extract simple structs, without recursion or embedding", func() {
+
+			ex1 := `
+type ExampleStruct1 struct {
+	Str string
+	N   int
+}`
+			cv.So(ExtractString(ex1), cv.ShouldEqual, `type ExampleStruct1 struct { Str string; N int; } `)
+
+		})
+		cv.Convey("then we can extract structs that have other named structs inside", func() {
+
+			exNest := `
+type OneStruct struct {
+	One int
+}
+type NestingStruct struct {
+	One    int
+	Nester OneStruct
+}`
+
+			cv.So(ExtractString(exNest), cv.ShouldEqual, `type OneStruct struct { One int; } type NestingStruct struct { One int; Nester OneStruct; } `)
+
+		})
+
+		cv.Convey("then we can extract structs with anonymous (embedded) structs inside", func() {
+
+			exEmbed := `
+type OneStruct struct {
+	One int
+}
+type EmbedsOne struct {
+	OneStruct
+}`
+
+			cv.So(ExtractString(exEmbed), cv.ShouldEqual, `type OneStruct struct { One int; } type EmbedsOne struct { OneStruct; } `)
+
+		})
+
 	})
 }

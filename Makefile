@@ -1,3 +1,2 @@
 all:
 	go test -v
-

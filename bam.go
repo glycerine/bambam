@@ -25,25 +25,34 @@ func ParseCmdLine() string {
 
 func main() {
 	readMe := ParseCmdLine()
-	ExtractStructs(readMe)
+	ExtractStructs(readMe, nil)
 }
 
 type Extractor struct {
-	Out bytes.Buffer
+	out bytes.Buffer
 }
 
 func NewExtractor() *Extractor {
 	return &Extractor{}
 }
 
-func ExtractStructs(readMeFilePath string) []byte {
+func ExtractString(src string) string {
+	return string(ExtractStructs("", "package main; "+src))
+}
+
+// ExtractStructs pulls out the struct definitions from a golang source file.
+//
+// src has to be string, []byte, or io.Reader, as in parser.ParseFile(). src
+// can be nil if fname is provided. See http://golang.org/pkg/go/parser/#ParseFile
+//
+func ExtractStructs(fname string, src interface{}) []byte {
 
 	x := NewExtractor()
 	x.Init()
 
 	fset := token.NewFileSet() // positions are relative to fset
 
-	f, err := parser.ParseFile(fset, readMeFilePath, nil, parser.ParseComments)
+	f, err := parser.ParseFile(fset, fname, src, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +119,7 @@ func ExtractStructs(readMeFilePath string) []byte {
 								}
 
 								//fmt.Printf("} // end of %s \n\n", typeSpec.Name) // prod
-								fmt.Printf("} \n\n") // prod
+								x.EndStruct()
 
 								//goon.Dump(stru)
 								//fmt.Printf("\n =========== end stru =======\n\n\n")
@@ -131,29 +140,29 @@ func ExtractStructs(readMeFilePath string) []byte {
 		}
 	}
 
-	return x.Out.Bytes()
+	return x.out.Bytes()
 }
 
 func (x *Extractor) Init() {
-	fmt.Printf("package main; func main(){println(`extractor output ran fine.`)}\n")
+	//fmt.Fprintf(&x.out, "package main; func main(){println(`extractor output ran fine.`)}\n")
 }
 func (x *Extractor) StartStruct(name string) {
-	fmt.Printf("type %s struct { ", name)
+	fmt.Fprintf(&x.out, "type %s struct { ", name)
 }
-func (x *Extractor) EndStruct(name string) {
-	fmt.Printf("}")
+func (x *Extractor) EndStruct() {
+	fmt.Fprintf(&x.out, "} ")
 }
 
 func (x *Extractor) GenerateComment(c string) {
 	skipCommentsForNow := false
 	if !skipCommentsForNow {
-		fmt.Printf("%s\n", c) // prod
+		fmt.Fprintf(&x.out, "%s\n", c) // prod
 	}
 }
 func (x *Extractor) GenerateStructField(name string, typeName string) {
-	fmt.Printf("%s %s; ", name, typeName) // prod
+	fmt.Fprintf(&x.out, "%s %s; ", name, typeName) // prod
 }
 
 func (x *Extractor) GenerateEmbedded(typeName string) {
-	//fmt.Printf("   %s \n",  typeName) // prod
+	//fmt.Fprintf(&x.out,"   %s \n",  typeName) // prod
 }
