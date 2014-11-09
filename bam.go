@@ -172,7 +172,8 @@ func (x *Extractor) Init() {
 }
 func (x *Extractor) StartStruct(name string) {
 	x.fieldCount = 0
-	fmt.Fprintf(&x.out, "struct %s { ", name)
+	cname := CapnpStructName(name)
+	fmt.Fprintf(&x.out, "struct %s { ", cname)
 }
 func (x *Extractor) EndStruct() {
 	fmt.Fprintf(&x.out, "} ")
@@ -185,7 +186,7 @@ func (x *Extractor) GenerateComment(c string) {
 	}
 }
 
-func CapnpStruct(name string) string {
+func CapnpStructName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -197,7 +198,7 @@ func CapnpStruct(name string) string {
 
 }
 
-func CapnpField(name string) string {
+func CapnpFieldName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -210,7 +211,7 @@ func CapnpField(name string) string {
 
 func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
 
-	loweredName := CapnpField(name)
+	loweredName := CapnpFieldName(name)
 	typeDisplayed := typeName
 
 	switch typeName {
