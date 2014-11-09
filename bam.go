@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"os"
 	"strings"
+	"unicode"
 )
 
 func ParseCmdLine() string {
@@ -30,7 +31,8 @@ func main() {
 }
 
 type Extractor struct {
-	out bytes.Buffer
+	fieldCount int
+	out        bytes.Buffer
 }
 
 func NewExtractor() *Extractor {
@@ -167,7 +169,8 @@ func (x *Extractor) Init() {
 	//fmt.Fprintf(&x.out, "package main; func main(){println(`extractor output ran fine.`)}\n")
 }
 func (x *Extractor) StartStruct(name string) {
-	fmt.Fprintf(&x.out, "type %s struct { ", name)
+	x.fieldCount = 0
+	fmt.Fprintf(&x.out, "struct %s { ", name)
 }
 func (x *Extractor) EndStruct() {
 	fmt.Fprintf(&x.out, "} ")
@@ -180,7 +183,27 @@ func (x *Extractor) GenerateComment(c string) {
 	}
 }
 func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
-	fmt.Fprintf(&x.out, "%s %s; ", name, typeName) // prod
+
+	// gotta lowercase the first letter of the field
+	runes := []rune(name)
+	if len(runes) > 0 {
+		runes[0] = unicode.ToLower(runes[0])
+	}
+
+	loweredName := string(runes)
+	typeDisplayed := typeName
+
+	switch typeName {
+	case "string":
+		typeDisplayed = "Text"
+	case "int":
+		typeDisplayed = "Int64"
+	case "float64":
+		typeDisplayed = "Float64"
+	}
+
+	fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed) // prod
+	x.fieldCount++
 }
 
 func (x *Extractor) GenerateEmbedded(typeName string) {
