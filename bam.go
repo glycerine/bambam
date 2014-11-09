@@ -25,7 +25,8 @@ func ParseCmdLine() string {
 
 func main() {
 	readMe := ParseCmdLine()
-	ExtractStructs(readMe, nil)
+	os.Stdout.Write(ExtractStructs(readMe, nil))
+	fmt.Printf("\n")
 }
 
 type Extractor struct {
