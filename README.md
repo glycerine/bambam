@@ -1,4 +1,5 @@
-bambam
+bambam: the opposite of pebblez
 ======
 
-the complement to pebblez
+Given a golang source file, generate a capnproto schema and functions to easily read/write to that schema.
+
