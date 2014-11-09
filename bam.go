@@ -6,7 +6,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 	"unicode"
 )
@@ -182,21 +184,41 @@ func (x *Extractor) GenerateComment(c string) {
 		fmt.Fprintf(&x.out, "%s\n", c) // prod
 	}
 }
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
 
-	// gotta lowercase the first letter of the field
-	runes := []rune(name)
-	if len(runes) > 0 {
-		runes[0] = unicode.ToLower(runes[0])
+func CapnpStruct(name string) string {
+	if len(name) == 0 {
+		return name
 	}
 
-	loweredName := string(runes)
+	// gotta upercase the first letter of type (struct) names
+	runes := []rune(name)
+	runes[0] = unicode.ToUpper(runes[0])
+	return string(runes)
+
+}
+
+func CapnpField(name string) string {
+	if len(name) == 0 {
+		return name
+	}
+
+	// gotta lowercase the first letter of field names
+	runes := []rune(name)
+	runes[0] = unicode.ToLower(runes[0])
+	return string(runes)
+}
+
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
+
+	loweredName := CapnpField(name)
 	typeDisplayed := typeName
 
 	switch typeName {
 	case "string":
 		typeDisplayed = "Text"
 	case "int":
+		typeDisplayed = "Int64"
+	case "int64":
 		typeDisplayed = "Int64"
 	case "float64":
 		typeDisplayed = "Float64"
@@ -208,4 +230,34 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 func (x *Extractor) GenerateEmbedded(typeName string) {
 	fmt.Fprintf(&x.out, "%s; ", typeName) // prod
+}
+
+func CapnpCompileFragment(in []byte) error {
+	id, err := exec.Command("capnp", "id").CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := ioutil.TempFile(".", "capnp.test.")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	var full bytes.Buffer
+	fmt.Fprintf(&full, "%s;\n", id)
+
+	return CapnpCompile(full.Bytes())
+
+	_, err = exec.Command("capnp", "compile", "-ogo", f.Name()).CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+
+	return err
+}
+func CapnpCompile(in []byte) error {
+	//"capnp compile -ogo capiptab.capnp"
+	return nil
 }
