@@ -66,11 +66,16 @@ type NestingStruct struct {
 	One    int
 	Nester OneStruct
 }`
-
 			cv.So(ExtractString(exNest), cv.ShouldEqual, `type OneStruct struct { One int; } type NestingStruct struct { One int; Nester OneStruct; } `)
 
 		})
 
+	})
+}
+
+func TestEmbedded(t *testing.T) {
+
+	cv.Convey("Given a parsable golang source file", t, func() {
 		cv.Convey("then we can extract structs with anonymous (embedded) structs inside", func() {
 
 			exEmbed := `
@@ -82,7 +87,6 @@ type EmbedsOne struct {
 }`
 
 			cv.So(ExtractString(exEmbed), cv.ShouldEqual, `type OneStruct struct { One int; } type EmbedsOne struct { OneStruct; } `)
-
 		})
 
 	})

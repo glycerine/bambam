@@ -88,28 +88,47 @@ func ExtractStructs(fname string, src interface{}) []byte {
 
 						switch typeSpec.Name.Obj.Decl.(type) {
 						case (*ast.TypeSpec):
+							//curStructName := typeSpec.Name.String()
+							curStructName := typeSpec.Name.Name
 							ts2 := typeSpec.Name.Obj.Decl.(*ast.TypeSpec)
-							switch ts2.Type.(type) {
+
+							//fmt.Printf("\n\n  in ts2 = %#v\n", ts2)
+							//goon.Dump(ts2)
+
+							switch ty := ts2.Type.(type) {
+							default:
+								// never hit
+								fmt.Printf("\n\n unrecog type ty = %#v\n", ty)
 							case (*ast.StructType):
 								stru := ts2.Type.(*ast.StructType)
 
-								x.StartStruct(typeSpec.Name.String())
-								//fmt.Printf("stru = %#v\n", stru)
+								x.StartStruct(curStructName)
+								//fmt.Printf("\n\n stru = %#v\n", stru)
+								//goon.Dump(stru)
 
 								if stru.Fields != nil {
 									for _, fld := range stru.Fields.List {
 										if fld != nil {
-											//fmt.Printf("    fld.Names = %#v\n", fld.Names)
+											//fmt.Printf("\n\n    fld.Names = %#v\n", fld.Names) // looking for
 											//goon.Dump(fld.Names)
-											for _, ident := range fld.Names {
 
-												switch ident.Obj.Decl.(type) {
-												case (*ast.Field):
-													fld2 := ident.Obj.Decl.(*ast.Field)
-													switch fld2.Type.(type) {
-													case (*ast.Ident):
-														ident2 := fld2.Type.(*ast.Ident)
-														x.GenerateStructField(ident.Name, ident2.Name)
+											if len(fld.Names) == 0 {
+												// field without name: embedded/anonymous struct
+												x.GenerateEmbedded(fld.Type.(*ast.Ident).Name)
+
+											} else {
+												// field with name
+												for _, ident := range fld.Names {
+
+													switch ident.Obj.Decl.(type) {
+													case (*ast.Field):
+														// named field
+														fld2 := ident.Obj.Decl.(*ast.Field)
+														switch fld2.Type.(type) {
+														case (*ast.Ident):
+															ident2 := fld2.Type.(*ast.Ident)
+															x.GenerateStructField(ident.Name, ident2.Name, fld2)
+														}
 													}
 												}
 											}
@@ -159,10 +178,10 @@ func (x *Extractor) GenerateComment(c string) {
 		fmt.Fprintf(&x.out, "%s\n", c) // prod
 	}
 }
-func (x *Extractor) GenerateStructField(name string, typeName string) {
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
 	fmt.Fprintf(&x.out, "%s %s; ", name, typeName) // prod
 }
 
 func (x *Extractor) GenerateEmbedded(typeName string) {
-	//fmt.Fprintf(&x.out,"   %s \n",  typeName) // prod
+	fmt.Fprintf(&x.out, "%s; ", typeName) // prod
 }
