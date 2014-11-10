@@ -60,6 +60,7 @@ type Field struct {
 	capIdFromTag      int
 	orderOfAppearance int
 	finalOrder        int
+	embedded          bool
 }
 
 type Struct struct {
@@ -153,9 +154,10 @@ type Extractor struct {
 	fieldPrefix string
 	fieldSuffix string
 
-	srs         []*Struct
-	curStruct   *Struct
-	heldComment string
+	srs            []*Struct
+	curStruct      *Struct
+	heldComment    string
+	extractPrivate bool
 }
 
 func NewExtractor() *Extractor {
@@ -335,7 +337,12 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 											if len(fld.Names) == 0 {
 												// field without name: embedded/anonymous struct
-												x.GenerateEmbedded(fld.Type.(*ast.Ident).Name)
+												typeName := fld.Type.(*ast.Ident).Name
+
+												err = x.GenerateStructField(typeName, typeName, fld, NotList, fld.Tag, YesEmbedded)
+												if err != nil {
+													return []byte{}, err
+												}
 
 											} else {
 												// field with name
@@ -353,14 +360,14 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 														case (*ast.StarExpr):
 															star2 := fld2.Type.(*ast.StarExpr)
-															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag)
+															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag, NotEmbedded)
 															if err != nil {
 																return []byte{}, err
 															}
 
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
-															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag)
+															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag, NotEmbedded)
 															if err != nil {
 																return []byte{}, err
 															}
@@ -370,12 +377,12 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 															array2 := fld2.Type.(*ast.ArrayType)
 															switch array2.Elt.(type) {
 															case (*ast.Ident):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag)
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
 																if err != nil {
 																	return []byte{}, err
 																}
 															case (*ast.StarExpr):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag)
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
 																if err != nil {
 																	return []byte{}, err
 																}
@@ -483,9 +490,19 @@ func LowercaseCapnpFieldName(name string) string {
 const YesIsList = true
 const NotList = false
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit) error {
+const NotEmbedded = false
+const YesEmbedded = true
 
-	curField := &Field{orderOfAppearance: x.fieldCount}
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+
+	// if we are ignoring private (lowercase first letter) fields, then stop here.
+	if !IsEmbedded {
+		if len(name) > 0 && unicode.IsLower([]rune(name)[0]) && !x.extractPrivate {
+			return nil
+		}
+	}
+
+	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded}
 
 	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
 
@@ -621,6 +638,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 func (x *Extractor) GenerateEmbedded(typeName string) {
 	fmt.Fprintf(&x.out, "%s; ", typeName) // prod
+
 }
 
 func getNewCapnpId() string {

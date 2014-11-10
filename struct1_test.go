@@ -86,7 +86,7 @@ type EmbedsOne struct {
 	OneStruct
 }`
 
-			cv.So(equalIgnoringSpaces(ExtractString2String(exEmbed), `struct OneStruct { one @0: Int64; } struct EmbedsOne { OneStruct; } `), cv.ShouldEqual, true)
+			cv.So(equalIgnoringSpaces(ExtractString2String(exEmbed), `struct OneStruct { one @0: Int64; } struct EmbedsOne { oneStruct @0: OneStruct; } `), cv.ShouldEqual, true)
 		})
 
 	})
