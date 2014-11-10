@@ -43,6 +43,10 @@ type Extractor struct {
 	out        bytes.Buffer
 	pkgName    string
 	importDecl string
+
+	// for testing purposes
+	myCounts []int
+	myNames  []string
 }
 
 func NewExtractor() *Extractor {
@@ -191,7 +195,7 @@ func (x *Extractor) Init() {
 }
 func (x *Extractor) StartStruct(name string) {
 	x.fieldCount = 0
-	cname := CapnpStructName(name)
+	cname := UppercaseCapnpTypeName(name)
 	fmt.Fprintf(&x.out, "struct %s { ", cname)
 }
 func (x *Extractor) EndStruct() {
@@ -205,7 +209,7 @@ func (x *Extractor) GenerateComment(c string) {
 	}
 }
 
-func CapnpStructName(name string) string {
+func UppercaseCapnpTypeName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -217,7 +221,7 @@ func CapnpStructName(name string) string {
 
 }
 
-func CapnpFieldName(name string) string {
+func LowercaseCapnpFieldName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -233,8 +237,8 @@ const NotList = false
 
 func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool) {
 
-	loweredName := CapnpFieldName(name)
-	typeDisplayed := typeName
+	loweredName := LowercaseCapnpFieldName(name)
+	typeDisplayed := UppercaseCapnpTypeName(typeName)
 
 	switch typeName {
 	case "string":

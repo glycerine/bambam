@@ -20,3 +20,19 @@ type s1 struct {
 		})
 	})
 }
+
+func TestSliceOfStructToList(t *testing.T) {
+
+	cv.Convey("Given a parsable golang source file with struct containing a slice of struct bbb", t, func() {
+		cv.Convey("then the slice should be converted to a List(Bbb) in the capnp output", func() {
+
+			ex0 := `
+type bbb struct {}
+type s1 struct {
+  MyBees []bbb
+}`
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Bbb { } struct S1 { myBees @0: List(Bbb); } `)
+
+		})
+	})
+}
