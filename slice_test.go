@@ -52,3 +52,18 @@ type s1 struct {
 		})
 	})
 }
+
+func TestSliceOfByteBecomesData(t *testing.T) {
+
+	cv.Convey("Given golang src with []byte", t, func() {
+		cv.Convey("then the slice should be converted to Data, not List(Byte), in the capnp output", func() {
+
+			ex0 := `
+type s1 struct {
+  MyData []byte
+}`
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1 { myData @0: Data; } `)
+
+		})
+	})
+}

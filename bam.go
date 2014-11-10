@@ -119,10 +119,10 @@ func ExtractStructs(fname string, src interface{}) []byte {
 							//fmt.Printf("\n\n  in ts2 = %#v\n", ts2)
 							//goon.Dump(ts2)
 
-							switch ty := ts2.Type.(type) {
+							switch ts2.Type.(type) {
 							default:
-								// never hit
-								fmt.Printf("\n\n unrecog type ty = %#v\n", ty)
+								// *ast.InterfaceType and *ast.Ident end up here.
+								//fmt.Printf("\n\n unrecog type ty = %#v\n", ty)
 							case (*ast.StructType):
 								stru := ts2.Type.(*ast.StructType)
 
@@ -276,8 +276,13 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		typeDisplayed = "Float32"
 	case "float64":
 		typeDisplayed = "Float64"
-	case "[]byte":
-		typeDisplayed = "Data"
+	case "byte":
+		if isList {
+			typeDisplayed = "Data"
+			isList = false
+		} else {
+			typeDisplayed = "Uint8"
+		}
 	}
 
 	if isList {
