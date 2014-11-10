@@ -41,7 +41,11 @@ func NewExtractor() *Extractor {
 	return &Extractor{}
 }
 
-func ExtractString(src string) string {
+func ExtractFromString(src string) []byte {
+	return ExtractStructs("", "package main; "+src)
+}
+
+func ExtractString2String(src string) string {
 	return string(ExtractStructs("", "package main; "+src))
 }
 
@@ -219,13 +223,33 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		typeDisplayed = "Text"
 	case "int":
 		typeDisplayed = "Int64"
+	case "bool":
+		typeDisplayed = "Bool"
+	case "int8":
+		typeDisplayed = "Int8"
+	case "int16":
+		typeDisplayed = "Int16"
+	case "int32":
+		typeDisplayed = "Int32"
 	case "int64":
 		typeDisplayed = "Int64"
+	case "uint8":
+		typeDisplayed = "UInt8"
+	case "uint16":
+		typeDisplayed = "UInt16"
+	case "uint32":
+		typeDisplayed = "UInt32"
+	case "uint64":
+		typeDisplayed = "UInt64"
+	case "float32":
+		typeDisplayed = "Float32"
 	case "float64":
 		typeDisplayed = "Float64"
+	case "[]byte":
+		typeDisplayed = "Data"
 	}
 
-	fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed) // prod
+	fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed)
 	x.fieldCount++
 }
 
@@ -233,32 +257,60 @@ func (x *Extractor) GenerateEmbedded(typeName string) {
 	fmt.Fprintf(&x.out, "%s; ", typeName) // prod
 }
 
-func CapnpCompileFragment(in []byte) error {
+func getNewCapnpId() string {
 	id, err := exec.Command("capnp", "id").CombinedOutput()
 	if err != nil {
 		panic(err)
 	}
+	n := len(id)
+	if n > 0 {
+		id = id[:n-1]
+	}
+
+	return string(id)
+}
+
+func CapnpCompileFragment(in []byte) []byte {
+
+	id := getNewCapnpId()
 
 	f, err := ioutil.TempFile(".", "capnp.test.")
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
 	defer os.Remove(f.Name())
 
-	var full bytes.Buffer
-	fmt.Fprintf(&full, "%s;\n", id)
+	pkgName := "testpkg"
+	importDecl := "testpkg"
 
-	return CapnpCompile(full.Bytes())
+	var by bytes.Buffer
 
-	_, err = exec.Command("capnp", "compile", "-ogo", f.Name()).CombinedOutput()
+	fmt.Fprintf(&by, `%s;
+using Go = import "go.capnp";
+$Go.package("%s");
+$Go.import("%s");
+`, id, pkgName, importDecl)
+	by.Write(in)
+	fmt.Fprintf(&by, "\n")
+
+	debug := string(by.Bytes())
+	f.Write(by.Bytes())
+	f.Close()
+
+	compiled, err := CapnpCompilePath(f.Name())
 	if err != nil {
-		panic(err)
+		return []byte(fmt.Sprintf("error compiling the generated capnp code: '%s'; error: '%s'\n", debug, err) + string(compiled))
 	}
 
-	return err
+	return compiled
 }
-func CapnpCompile(in []byte) error {
-	//"capnp compile -ogo capiptab.capnp"
-	return nil
+
+func CapnpCompilePath(fname string) ([]byte, error) {
+	defer os.Remove(fname + ".go")
+
+	by, err := exec.Command("capnp", "compile", "-ogo", fname).CombinedOutput()
+	if err != nil {
+		return by, err
+	}
+	return by, nil
 }

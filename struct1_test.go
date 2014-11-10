@@ -43,7 +43,7 @@ func TestSimpleStructExtraction(t *testing.T) {
 			ex0 := `
 type Empty1 struct {
 }`
-			cv.So(ExtractString(ex0), cv.ShouldEqual, `struct Empty1 { } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Empty1 { } `)
 
 		})
 		cv.Convey("then we can extract simple structs, without recursion or embedding", func() {
@@ -53,7 +53,7 @@ type ExampleStruct1 struct {
 	Str string
 	N   int
 }`
-			cv.So(ExtractString(ex1), cv.ShouldEqual, `struct ExampleStruct1 { str @0: Text; n @1: Int64; } `)
+			cv.So(ExtractString2String(ex1), cv.ShouldEqual, `struct ExampleStruct1 { str @0: Text; n @1: Int64; } `)
 
 		})
 		cv.Convey("then we can extract structs that have other named structs inside", func() {
@@ -66,7 +66,7 @@ type NestingStruct struct {
 	One    int
 	Nester OneStruct
 }`
-			cv.So(ExtractString(exNest), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct NestingStruct { one @0: Int64; nester @1: OneStruct; } `)
+			cv.So(ExtractString2String(exNest), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct NestingStruct { one @0: Int64; nester @1: OneStruct; } `)
 
 		})
 
@@ -86,7 +86,7 @@ type EmbedsOne struct {
 	OneStruct
 }`
 
-			cv.So(ExtractString(exEmbed), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct EmbedsOne { OneStruct; } `)
+			cv.So(ExtractString2String(exEmbed), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct EmbedsOne { OneStruct; } `)
 		})
 
 	})
