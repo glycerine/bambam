@@ -6,20 +6,20 @@ import "fmt"
 
 const debugEIS = false
 
-func equalIgnoringSpaces(a, b string) (res bool) {
+func equalIgnoringSpaces(r, s string) (res bool) {
 
 	defer func() {
 		if res {
 			if debugEIS {
-				fmt.Printf("\n\n equalIgnoringSpaces says these are the same: '%s' and '%s'\n", a, b)
+				fmt.Printf("\n\n equalIgnoringSpaces says these are the same: '%s' and '%s'\n", r, s)
 			}
 		} else {
-			fmt.Printf("\n\n equalIgnoringSpaces says these are NOT the same: '%s' and '%s'\n", a, b)
+			fmt.Printf("\n\n equalIgnoringSpaces says these are NOT the same: '%s' and '%s'\n", r, s)
 		}
 	}()
 
-	r := []rune(a)
-	s := []rune(b)
+	//	r := []rune(a)
+	//	s := []rune(b)
 	nextr := 0
 	nexts := 0
 
