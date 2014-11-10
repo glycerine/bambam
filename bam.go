@@ -240,14 +240,14 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 														case (*ast.StarExpr):
 															star2 := fld2.Type.(*ast.StarExpr)
-															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, "")
+															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag)
 															if err != nil {
 																return []byte{}, err
 															}
 
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
-															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, "")
+															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag)
 															if err != nil {
 																return []byte{}, err
 															}
@@ -257,12 +257,12 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 															array2 := fld2.Type.(*ast.ArrayType)
 															switch array2.Elt.(type) {
 															case (*ast.Ident):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, "")
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag)
 																if err != nil {
 																	return []byte{}, err
 																}
 															case (*ast.StarExpr):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, "")
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag)
 																if err != nil {
 																	return []byte{}, err
 																}
@@ -368,9 +368,33 @@ func LowercaseCapnpFieldName(name string) string {
 const YesIsList = true
 const NotList = false
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, goAnnot string) error {
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit) error {
 
-	loweredName := LowercaseCapnpFieldName(name)
+	var goAnnot string
+	var loweredName string
+	if tag != nil {
+		//fmt.Printf("tag = %#v\n", tag)
+
+		if tag.Value != "" {
+			match := regexCapname.FindStringSubmatch(tag.Value)
+			if match != nil {
+				if len(match) == 2 {
+					//fmt.Printf("matched, using '%s' instead of '%s'\n", match[1], name)
+					loweredName = match[1]
+					goAnnot = tag.Value
+
+					if isCapnpKeyword(loweredName) {
+						err := fmt.Errorf(`problem detected after applying the capname tag '%s' found on field '%s': '%s' is a reserved capnp word, so please use a *different* struct field tag (e.g. capname:"capnpName") to rename it`, tag.Value, name, loweredName)
+						return err
+					}
+
+				}
+			}
+		}
+
+	} else {
+		loweredName = LowercaseCapnpFieldName(name)
+	}
 
 	if isCapnpKeyword(loweredName) {
 		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, name, loweredName)
