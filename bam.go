@@ -147,7 +147,11 @@ func ExtractStructs(fname string, src interface{}) []byte {
 														switch fld2.Type.(type) {
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
-															x.GenerateStructField(ident.Name, ident2.Name, fld2)
+															x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList)
+														case (*ast.ArrayType):
+															// slice or array
+															ident2 := fld2.Type.(*ast.ArrayType)
+															x.GenerateStructField(ident.Name, ident2.Elt.(*ast.Ident).Name, fld2, YesIsList)
 														}
 													}
 												}
@@ -224,7 +228,10 @@ func CapnpFieldName(name string) string {
 	return string(runes)
 }
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field) {
+const YesIsList = true
+const NotList = false
+
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool) {
 
 	loweredName := CapnpFieldName(name)
 	typeDisplayed := typeName
@@ -260,7 +267,11 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		typeDisplayed = "Data"
 	}
 
-	fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed)
+	if isList {
+		fmt.Fprintf(&x.out, "%s @%d: List(%s); ", loweredName, x.fieldCount, typeDisplayed)
+	} else {
+		fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed)
+	}
 	x.fieldCount++
 }
 
