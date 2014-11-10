@@ -9,12 +9,12 @@ const debugEIS = false
 func equalIgnoringSpaces(a, b string) (res bool) {
 
 	defer func() {
-		if debugEIS {
-			if res {
+		if res {
+			if debugEIS {
 				fmt.Printf("\n\n equalIgnoringSpaces says these are the same: '%s' and '%s'\n", a, b)
-			} else {
-				fmt.Printf("\n\n equalIgnoringSpaces says these are NOT the same: '%s' and '%s'\n", a, b)
 			}
+		} else {
+			fmt.Printf("\n\n equalIgnoringSpaces says these are NOT the same: '%s' and '%s'\n", a, b)
 		}
 	}()
 

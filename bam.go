@@ -507,7 +507,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
 
 	var tagValue string
-	loweredName := LowercaseCapnpFieldName(name)
+	loweredName := underToCamelCase(LowercaseCapnpFieldName(name))
 
 	if tag != nil {
 		//fmt.Printf("tag = %#v\n", tag)
