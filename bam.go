@@ -30,22 +30,25 @@ func main() {
 	readMe := ParseCmdLine()
 
 	x := NewExtractor()
-	x.Init()
+	x.fieldPrefix = "   "
+	x.fieldSuffix = "\n"
 
-	by := x.AssembleCapnpFile(ExtractStructs(readMe, nil))
+	by := x.AssembleCapnpFile(ExtractStructs(readMe, nil, x))
 	os.Stdout.Write(by.Bytes())
 	fmt.Printf("\n")
 	fmt.Printf("##compile with:\n\n##   capnp compile -ogo yourfile.capnp\n\n")
 }
 
 type Extractor struct {
-	fieldCount int
-	out        bytes.Buffer
-	pkgName    string
-	importDecl string
+	fieldCount  int
+	out         bytes.Buffer
+	pkgName     string
+	importDecl  string
+	fieldPrefix string
+	fieldSuffix string
 
 	// for testing purposes
-	myCounts []int
+	myCounts *Extractor
 	myNames  []string
 }
 
@@ -57,11 +60,11 @@ func NewExtractor() *Extractor {
 }
 
 func ExtractFromString(src string) []byte {
-	return ExtractStructs("", "package main; "+src)
+	return ExtractStructs("", "package main; "+src, nil)
 }
 
 func ExtractString2String(src string) string {
-	return string(ExtractStructs("", "package main; "+src))
+	return string(ExtractStructs("", "package main; "+src, nil))
 }
 
 // ExtractStructs pulls out the struct definitions from a golang source file.
@@ -69,10 +72,11 @@ func ExtractString2String(src string) string {
 // src has to be string, []byte, or io.Reader, as in parser.ParseFile(). src
 // can be nil if fname is provided. See http://golang.org/pkg/go/parser/#ParseFile
 //
-func ExtractStructs(fname string, src interface{}) []byte {
+func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
 
-	x := NewExtractor()
-	x.Init()
+	if x == nil {
+		x = NewExtractor()
+	}
 
 	fset := token.NewFileSet() // positions are relative to fset
 
@@ -153,17 +157,22 @@ func ExtractStructs(fname string, src interface{}) []byte {
 														//goon.Dump(fld2)
 
 														switch fld2.Type.(type) {
+
+														case (*ast.StarExpr):
+															star2 := fld2.Type.(*ast.StarExpr)
+															x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList)
+
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
 															x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList)
 														case (*ast.ArrayType):
 															// slice or array
-															ident2 := fld2.Type.(*ast.ArrayType)
-															switch ident2.Elt.(type) {
+															array2 := fld2.Type.(*ast.ArrayType)
+															switch array2.Elt.(type) {
 															case (*ast.Ident):
-																x.GenerateStructField(ident.Name, ident2.Elt.(*ast.Ident).Name, fld2, YesIsList)
+																x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList)
 															case (*ast.StarExpr):
-																x.GenerateStructField(ident.Name, ident2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList)
+																x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList)
 															}
 														}
 													}
@@ -199,16 +208,13 @@ func ExtractStructs(fname string, src interface{}) []byte {
 	return x.out.Bytes()
 }
 
-func (x *Extractor) Init() {
-	//fmt.Fprintf(&x.out, "package main; func main(){println(`extractor output ran fine.`)}\n")
-}
 func (x *Extractor) StartStruct(name string) {
 	x.fieldCount = 0
 	cname := UppercaseCapnpTypeName(name)
-	fmt.Fprintf(&x.out, "struct %s { ", cname)
+	fmt.Fprintf(&x.out, "struct %s { %s", cname, x.fieldSuffix)
 }
 func (x *Extractor) EndStruct() {
-	fmt.Fprintf(&x.out, "} ")
+	fmt.Fprintf(&x.out, "} %s", x.fieldSuffix)
 }
 
 func (x *Extractor) GenerateComment(c string) {
@@ -286,9 +292,9 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	}
 
 	if isList {
-		fmt.Fprintf(&x.out, "%s @%d: List(%s); ", loweredName, x.fieldCount, typeDisplayed)
+		fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
 	} else {
-		fmt.Fprintf(&x.out, "%s @%d: %s; ", loweredName, x.fieldCount, typeDisplayed)
+		fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
 	}
 	x.fieldCount++
 }
@@ -319,7 +325,7 @@ func (x *Extractor) AssembleCapnpFile(in []byte) *bytes.Buffer {
 using Go = import "go.capnp";
 $Go.package("%s");
 $Go.import("%s");
-`, id, x.pkgName, x.importDecl)
+%s`, id, x.pkgName, x.importDecl, x.fieldSuffix)
 	by.Write(in)
 	fmt.Fprintf(&by, "\n")
 
