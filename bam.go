@@ -28,17 +28,28 @@ func ParseCmdLine() string {
 
 func main() {
 	readMe := ParseCmdLine()
-	os.Stdout.Write(ExtractStructs(readMe, nil))
+
+	x := NewExtractor()
+	x.Init()
+
+	by := x.AssembleCapnpFile(ExtractStructs(readMe, nil))
+	os.Stdout.Write(by.Bytes())
 	fmt.Printf("\n")
+	fmt.Printf("##compile with:\n\n##   capnp compile -ogo yourfile.capnp\n\n")
 }
 
 type Extractor struct {
 	fieldCount int
 	out        bytes.Buffer
+	pkgName    string
+	importDecl string
 }
 
 func NewExtractor() *Extractor {
-	return &Extractor{}
+	return &Extractor{
+		pkgName:    "testpkg",
+		importDecl: "testpkg",
+	}
 }
 
 func ExtractFromString(src string) []byte {
@@ -270,9 +281,28 @@ func getNewCapnpId() string {
 	return string(id)
 }
 
-func CapnpCompileFragment(in []byte) []byte {
+func (x *Extractor) AssembleCapnpFile(in []byte) *bytes.Buffer {
+	var by bytes.Buffer
 
 	id := getNewCapnpId()
+
+	fmt.Fprintf(&by, `%s;
+using Go = import "go.capnp";
+$Go.package("%s");
+$Go.import("%s");
+`, id, x.pkgName, x.importDecl)
+	by.Write(in)
+	fmt.Fprintf(&by, "\n")
+
+	return &by
+}
+
+func CapnpCompileFragment(in []byte) []byte {
+	x := NewExtractor()
+	return x.CapnpCompileFragment(in)
+}
+
+func (x *Extractor) CapnpCompileFragment(in []byte) []byte {
 
 	f, err := ioutil.TempFile(".", "capnp.test.")
 	if err != nil {
@@ -280,20 +310,9 @@ func CapnpCompileFragment(in []byte) []byte {
 	}
 	defer os.Remove(f.Name())
 
-	pkgName := "testpkg"
-	importDecl := "testpkg"
-
-	var by bytes.Buffer
-
-	fmt.Fprintf(&by, `%s;
-using Go = import "go.capnp";
-$Go.package("%s");
-$Go.import("%s");
-`, id, pkgName, importDecl)
-	by.Write(in)
-	fmt.Fprintf(&by, "\n")
-
+	by := x.AssembleCapnpFile(in)
 	debug := string(by.Bytes())
+
 	f.Write(by.Bytes())
 	f.Close()
 
