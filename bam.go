@@ -148,6 +148,10 @@ func ExtractStructs(fname string, src interface{}) []byte {
 													case (*ast.Field):
 														// named field
 														fld2 := ident.Obj.Decl.(*ast.Field)
+
+														//fmt.Printf("\n\n    fld2 = %#v\n", fld2)
+														//goon.Dump(fld2)
+
 														switch fld2.Type.(type) {
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
@@ -155,7 +159,12 @@ func ExtractStructs(fname string, src interface{}) []byte {
 														case (*ast.ArrayType):
 															// slice or array
 															ident2 := fld2.Type.(*ast.ArrayType)
-															x.GenerateStructField(ident.Name, ident2.Elt.(*ast.Ident).Name, fld2, YesIsList)
+															switch ident2.Elt.(type) {
+															case (*ast.Ident):
+																x.GenerateStructField(ident.Name, ident2.Elt.(*ast.Ident).Name, fld2, YesIsList)
+															case (*ast.StarExpr):
+																x.GenerateStructField(ident.Name, ident2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList)
+															}
 														}
 													}
 												}

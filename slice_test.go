@@ -36,3 +36,19 @@ type s1 struct {
 		})
 	})
 }
+
+func TestSliceOfPointerToList(t *testing.T) {
+
+	cv.Convey("Given a parsable golang source file with struct containing a slice of pointers to struct big", t, func() {
+		cv.Convey("then the slice should be converted to a List(Big) in the capnp output", func() {
+
+			ex0 := `
+type big struct {}
+type s1 struct {
+  MyBigs []*big
+}`
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Big { } struct S1 { myBigs @0: List(Big); } `)
+
+		})
+	})
+}
