@@ -377,13 +377,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		return err
 	}
 
-	typeDisplayed := UppercaseCapnpTypeName(typeName)
-
-	if isCapnpKeyword(typeDisplayed) {
-		err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, typeName, typeDisplayed)
-		panic(err)
-		return err
-	}
+	var typeDisplayed string
 
 	switch typeName {
 	case "string":
@@ -418,6 +412,14 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 			isList = false
 		} else {
 			typeDisplayed = "Uint8"
+		}
+	default:
+		typeDisplayed = UppercaseCapnpTypeName(typeName)
+
+		if isCapnpKeyword(typeDisplayed) {
+			err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, typeName, typeDisplayed)
+			panic(err)
+			return err
 		}
 	}
 
