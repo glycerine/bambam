@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -33,10 +34,37 @@ func main() {
 	x.fieldPrefix = "   "
 	x.fieldSuffix = "\n"
 
-	by := x.AssembleCapnpFile(ExtractStructs(readMe, nil, x))
+	ExtractStructs(readMe, nil, x)
+
+	by := x.GenCapnpHeader()
 	os.Stdout.Write(by.Bytes())
+
+	_, err := x.WriteTo(os.Stdout)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("\n")
 	fmt.Printf("##compile with:\n\n##   capnp compile -ogo yourfile.capnp\n\n")
+}
+
+type Field struct {
+	name   string
+	typ    string
+	annot  string
+	isList bool
+}
+
+type Struct struct {
+	name         string
+	fld          []*Field
+	longestField int
+}
+
+func NewStruct(name string) *Struct {
+	return &Struct{
+		name: name,
+		fld:  []*Field{},
+	}
 }
 
 type Extractor struct {
@@ -47,9 +75,8 @@ type Extractor struct {
 	fieldPrefix string
 	fieldSuffix string
 
-	// for testing purposes
-	myCounts *Extractor
-	myNames  []string
+	srs       []*Struct
+	curStruct *Struct
 }
 
 func NewExtractor() *Extractor {
@@ -57,6 +84,47 @@ func NewExtractor() *Extractor {
 		pkgName:    "testpkg",
 		importDecl: "testpkg",
 	}
+}
+
+func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
+
+	var m int
+	var spaces string
+	for _, s := range x.srs {
+		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.name, x.fieldSuffix)
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		for i, fld := range s.fld {
+			SetSpaces(&spaces, s.longestField, len(fld.name))
+			if fld.isList {
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.name, spaces, i, ExtraSpaces(i), fld.typ, x.fieldSuffix)
+				n += int64(m)
+				if err != nil {
+					return
+				}
+
+			} else {
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.name, spaces, i, ExtraSpaces(i), fld.typ, x.fieldSuffix)
+				n += int64(m)
+				if err != nil {
+					return
+				}
+
+			}
+		}
+
+		m, err = fmt.Fprintf(w, "} %s", x.fieldSuffix)
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+	}
+
+	return
 }
 
 func ExtractFromString(src string) []byte {
@@ -160,19 +228,19 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
 
 														case (*ast.StarExpr):
 															star2 := fld2.Type.(*ast.StarExpr)
-															x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList)
+															x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, "")
 
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
-															x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList)
+															x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, "")
 														case (*ast.ArrayType):
 															// slice or array
 															array2 := fld2.Type.(*ast.ArrayType)
 															switch array2.Elt.(type) {
 															case (*ast.Ident):
-																x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList)
+																x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, "")
 															case (*ast.StarExpr):
-																x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList)
+																x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, "")
 															}
 														}
 													}
@@ -212,6 +280,9 @@ func (x *Extractor) StartStruct(name string) {
 	x.fieldCount = 0
 	cname := UppercaseCapnpTypeName(name)
 	fmt.Fprintf(&x.out, "struct %s { %s", cname, x.fieldSuffix)
+
+	x.curStruct = NewStruct(cname)
+	x.srs = append(x.srs, x.curStruct)
 }
 func (x *Extractor) EndStruct() {
 	fmt.Fprintf(&x.out, "} %s", x.fieldSuffix)
@@ -250,7 +321,7 @@ func LowercaseCapnpFieldName(name string) string {
 const YesIsList = true
 const NotList = false
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool) {
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, annot string) {
 
 	loweredName := LowercaseCapnpFieldName(name)
 	typeDisplayed := UppercaseCapnpTypeName(typeName)
@@ -296,6 +367,13 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	} else {
 		fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
 	}
+
+	sz := len(loweredName)
+	if sz > x.curStruct.longestField {
+		x.curStruct.longestField = sz
+	}
+
+	x.curStruct.fld = append(x.curStruct.fld, &Field{name: loweredName, typ: typeDisplayed, isList: isList, annot: annot})
 	x.fieldCount++
 }
 
@@ -316,7 +394,7 @@ func getNewCapnpId() string {
 	return string(id)
 }
 
-func (x *Extractor) AssembleCapnpFile(in []byte) *bytes.Buffer {
+func (x *Extractor) GenCapnpHeader() *bytes.Buffer {
 	var by bytes.Buffer
 
 	id := getNewCapnpId()
@@ -326,10 +404,17 @@ using Go = import "go.capnp";
 $Go.package("%s");
 $Go.import("%s");
 %s`, id, x.pkgName, x.importDecl, x.fieldSuffix)
-	by.Write(in)
-	fmt.Fprintf(&by, "\n")
 
 	return &by
+}
+
+func (x *Extractor) AssembleCapnpFile(in []byte) *bytes.Buffer {
+	by := x.GenCapnpHeader()
+
+	by.Write(in)
+	fmt.Fprintf(by, "\n")
+
+	return by
 }
 
 func CapnpCompileFragment(in []byte) []byte {
@@ -367,4 +452,22 @@ func CapnpCompilePath(fname string) ([]byte, error) {
 		return by, err
 	}
 	return by, nil
+}
+
+func SetSpaces(spaces *string, Max int, Len int) {
+	if Len >= Max {
+		*spaces = ""
+		return
+	}
+	*spaces = strings.Repeat(" ", Max-Len)
+}
+
+func ExtraSpaces(fieldNum int) string {
+	if fieldNum < 10 {
+		return "  "
+	}
+	if fieldNum < 100 {
+		return " "
+	}
+	return ""
 }
