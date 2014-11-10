@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -48,22 +49,25 @@ func main() {
 }
 
 type Field struct {
-	name   string
-	typ    string
-	annot  string
-	isList bool
+	capname string
+	capType string
+	goName  string
+	goType  string
+	goAnnot string
+	isList  bool
 }
 
 type Struct struct {
-	name         string
+	capname      string
 	fld          []*Field
 	longestField int
+	comment      string
 }
 
-func NewStruct(name string) *Struct {
+func NewStruct(capname string) *Struct {
 	return &Struct{
-		name: name,
-		fld:  []*Field{},
+		capname: capname,
+		fld:     []*Field{},
 	}
 }
 
@@ -75,8 +79,9 @@ type Extractor struct {
 	fieldPrefix string
 	fieldSuffix string
 
-	srs       []*Struct
-	curStruct *Struct
+	srs         []*Struct
+	curStruct   *Struct
+	heldComment string
 }
 
 func NewExtractor() *Extractor {
@@ -91,23 +96,23 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 	var m int
 	var spaces string
 	for _, s := range x.srs {
-		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.name, x.fieldSuffix)
+		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.capname, x.fieldSuffix)
 		n += int64(m)
 		if err != nil {
 			return
 		}
 
 		for i, fld := range s.fld {
-			SetSpaces(&spaces, s.longestField, len(fld.name))
+			SetSpaces(&spaces, s.longestField, len(fld.capname))
 			if fld.isList {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.name, spaces, i, ExtraSpaces(i), fld.typ, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, i, ExtraSpaces(i), fld.capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
 				}
 
 			} else {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.name, spaces, i, ExtraSpaces(i), fld.typ, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, i, ExtraSpaces(i), fld.capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
@@ -127,12 +132,16 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 	return
 }
 
-func ExtractFromString(src string) []byte {
+func ExtractFromString(src string) ([]byte, error) {
 	return ExtractStructs("", "package main; "+src, nil)
 }
 
 func ExtractString2String(src string) string {
-	return string(ExtractStructs("", "package main; "+src, nil))
+	by, err := ExtractStructs("", "package main; "+src, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(by)
 }
 
 // ExtractStructs pulls out the struct definitions from a golang source file.
@@ -140,7 +149,7 @@ func ExtractString2String(src string) string {
 // src has to be string, []byte, or io.Reader, as in parser.ParseFile(). src
 // can be nil if fname is provided. See http://golang.org/pkg/go/parser/#ParseFile
 //
-func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
+func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error) {
 
 	if x == nil {
 		x = NewExtractor()
@@ -198,7 +207,10 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
 							case (*ast.StructType):
 								stru := ts2.Type.(*ast.StructType)
 
-								x.StartStruct(curStructName)
+								err = x.StartStruct(curStructName)
+								if err != nil {
+									return []byte{}, err
+								}
 								//fmt.Printf("\n\n stru = %#v\n", stru)
 								//goon.Dump(stru)
 
@@ -228,19 +240,32 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
 
 														case (*ast.StarExpr):
 															star2 := fld2.Type.(*ast.StarExpr)
-															x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, "")
+															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, "")
+															if err != nil {
+																return []byte{}, err
+															}
 
 														case (*ast.Ident):
 															ident2 := fld2.Type.(*ast.Ident)
-															x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, "")
+															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, "")
+															if err != nil {
+																return []byte{}, err
+															}
+
 														case (*ast.ArrayType):
 															// slice or array
 															array2 := fld2.Type.(*ast.ArrayType)
 															switch array2.Elt.(type) {
 															case (*ast.Ident):
-																x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, "")
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, "")
+																if err != nil {
+																	return []byte{}, err
+																}
 															case (*ast.StarExpr):
-																x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, "")
+																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, "")
+																if err != nil {
+																	return []byte{}, err
+																}
 															}
 														}
 													}
@@ -273,26 +298,48 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) []byte {
 		}
 	}
 
-	return x.out.Bytes()
+	return x.out.Bytes(), err
 }
 
-func (x *Extractor) StartStruct(name string) {
-	x.fieldCount = 0
-	cname := UppercaseCapnpTypeName(name)
-	fmt.Fprintf(&x.out, "struct %s { %s", cname, x.fieldSuffix)
+var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
 
-	x.curStruct = NewStruct(cname)
+func (x *Extractor) StartStruct(name string) error {
+	x.fieldCount = 0
+
+	capname := UppercaseCapnpTypeName(name)
+
+	// check for rename comment, capname:"newCapName"
+	if x.heldComment != "" {
+
+		match := regexCapname.FindStringSubmatch(x.heldComment)
+		if match != nil {
+			if len(match) == 2 {
+				capname = match[1]
+			}
+		}
+	}
+
+	if isCapnpKeyword(capname) {
+		err := fmt.Errorf(`after uppercasing the first letter, struct '%s' becomes '%s' but this is a reserved capnp word, so please write a comment annotation just before the struct definition in go (e.g. // capname:"capName") to rename it.`, name, capname)
+		panic(err)
+		return err
+	}
+
+	fmt.Fprintf(&x.out, "struct %s { %s", capname, x.fieldSuffix)
+
+	x.curStruct = NewStruct(capname)
+	x.curStruct.comment = x.heldComment
+	x.heldComment = ""
 	x.srs = append(x.srs, x.curStruct)
+
+	return nil
 }
 func (x *Extractor) EndStruct() {
 	fmt.Fprintf(&x.out, "} %s", x.fieldSuffix)
 }
 
 func (x *Extractor) GenerateComment(c string) {
-	skipCommentsForNow := false
-	if !skipCommentsForNow {
-		fmt.Fprintf(&x.out, "%s\n", c) // prod
-	}
+	x.heldComment = x.heldComment + c + "\n"
 }
 
 func UppercaseCapnpTypeName(name string) string {
@@ -321,10 +368,22 @@ func LowercaseCapnpFieldName(name string) string {
 const YesIsList = true
 const NotList = false
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, annot string) {
+func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, goAnnot string) error {
 
 	loweredName := LowercaseCapnpFieldName(name)
+
+	if isCapnpKeyword(loweredName) {
+		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, name, loweredName)
+		return err
+	}
+
 	typeDisplayed := UppercaseCapnpTypeName(typeName)
+
+	if isCapnpKeyword(typeDisplayed) {
+		err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, typeName, typeDisplayed)
+		panic(err)
+		return err
+	}
 
 	switch typeName {
 	case "string":
@@ -373,8 +432,10 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		x.curStruct.longestField = sz
 	}
 
-	x.curStruct.fld = append(x.curStruct.fld, &Field{name: loweredName, typ: typeDisplayed, isList: isList, annot: annot})
+	x.curStruct.fld = append(x.curStruct.fld, &Field{capname: loweredName, capType: typeDisplayed, goName: name, goType: typeName, isList: isList, goAnnot: goAnnot})
 	x.fieldCount++
+
+	return nil
 }
 
 func (x *Extractor) GenerateEmbedded(typeName string) {

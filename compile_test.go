@@ -18,7 +18,11 @@ type in1 struct {
     D   float64
 }`
 
-			s1 := ExtractFromString(in1)
+			s1, err := ExtractFromString(in1)
+			if err != nil {
+				panic(err)
+			}
+
 			//expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64; } `
 			//cv.So(string(s1), cv.ShouldEqual, expect1)
 
