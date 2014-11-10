@@ -20,7 +20,7 @@ type In1 struct {
 			expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64; } `
 			// List(Float64) next
 
-			cv.So(ExtractString2String(in1), cv.ShouldEqual, expect1)
+			cv.So(equalIgnoringSpaces(ExtractString2String(in1), expect1), cv.ShouldEqual, true)
 
 		})
 	})
@@ -37,10 +37,10 @@ type in1 struct {
 	N   int
     D   float64
 }`
-			expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64; } `
+			expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64;}`
 			// List(Float64) next
 
-			cv.So(ExtractString2String(in1), cv.ShouldEqual, expect1)
+			cv.So(equalIgnoringSpaces(ExtractString2String(in1), expect1), cv.ShouldEqual, true)
 
 		})
 	})

@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -49,25 +51,97 @@ func main() {
 }
 
 type Field struct {
-	capname string
-	capType string
-	goName  string
-	goType  string
-	goAnnot string
-	isList  bool
+	capname           string
+	capType           string
+	goName            string
+	goType            string
+	tagValue          string
+	isList            bool
+	capIdFromTag      int
+	orderOfAppearance int
+	finalOrder        int
 }
 
 type Struct struct {
-	capname      string
+	capName      string
+	goName       string
 	fld          []*Field
 	longestField int
 	comment      string
+	capIdMap     map[int]*Field
+}
+
+func (s *Struct) computeFinalOrder() {
+
+	// assign Field.finalOrder to all values in s.fld, from 0..(len(s.fld)-1)
+	max := len(s.fld) - 1
+	// check for out of bounds requests
+	for _, f := range s.fld {
+		if f.capIdFromTag > max {
+			err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': number '%d' is beyond the count of fields we have, largest available is %d`, f.tagValue, f.goName, s.goName, f.capIdFromTag, max)
+			panic(err)
+		}
+	}
+
+	// only one field? already done
+	if len(s.fld) == 1 {
+		s.fld[0].finalOrder = 0
+		return
+	}
+	// INVAR: no duplicate requests, and all are in bounds.
+
+	// wipe slate clean
+	for _, f := range s.fld {
+		f.finalOrder = -1
+	}
+
+	final := make([]*Field, len(s.fld))
+
+	// assign from map
+	for _, v := range s.capIdMap {
+		v.finalOrder = v.capIdFromTag
+		final[v.capIdFromTag] = v
+	}
+
+	appear := make([]*Field, len(s.fld))
+	copy(appear, s.fld)
+
+	sort.Sort(ByOrderOfAppearance(appear))
+
+	//find next available slot, and fill in, in order of appearance
+	write := 0
+
+	for read := 0; read <= max; read++ {
+		if appear[read].finalOrder != -1 {
+			continue
+		}
+		// appear[read] needs an assignment
+
+		done := advanceWrite(&write, final)
+		if !done {
+			// final[write] has a slot for an assignment
+			final[write] = appear[read]
+			final[write].finalOrder = write
+		}
+
+	}
+}
+
+// returns true if done. if false, then final[*pw] is available for writing.
+func advanceWrite(pw *int, final []*Field) bool {
+	for n := len(final); *pw < n; (*pw)++ {
+		if final[*pw] == nil { // .finalOrder == -1 {
+			return false
+		}
+	}
+	return true
 }
 
 func NewStruct(capname string) *Struct {
 	return &Struct{
-		capname: capname,
-		fld:     []*Field{},
+		capName:  capname,
+		fld:      []*Field{},
+		capIdMap: map[int]*Field{},
 	}
 }
 
@@ -91,28 +165,57 @@ func NewExtractor() *Extractor {
 	}
 }
 
+type ByFinalOrder []*Field
+
+func (s ByFinalOrder) Len() int {
+	return len(s)
+}
+func (s ByFinalOrder) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByFinalOrder) Less(i, j int) bool {
+	return s[i].finalOrder < s[j].finalOrder
+}
+
+type ByOrderOfAppearance []*Field
+
+func (s ByOrderOfAppearance) Len() int {
+	return len(s)
+}
+func (s ByOrderOfAppearance) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByOrderOfAppearance) Less(i, j int) bool {
+	return s[i].orderOfAppearance < s[j].orderOfAppearance
+}
+
 func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 
 	var m int
 	var spaces string
 	for _, s := range x.srs {
-		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.capname, x.fieldSuffix)
+
+		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.capName, x.fieldSuffix)
 		n += int64(m)
 		if err != nil {
 			return
 		}
 
+		s.computeFinalOrder()
+
+		sort.Sort(ByFinalOrder(s.fld))
+
 		for i, fld := range s.fld {
 			SetSpaces(&spaces, s.longestField, len(fld.capname))
 			if fld.isList {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, i, ExtraSpaces(i), fld.capType, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), fld.capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
 				}
 
 			} else {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, i, ExtraSpaces(i), fld.capType, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), fld.capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
@@ -137,11 +240,21 @@ func ExtractFromString(src string) ([]byte, error) {
 }
 
 func ExtractString2String(src string) string {
-	by, err := ExtractStructs("", "package main; "+src, nil)
+
+	x := NewExtractor()
+	_, err := ExtractStructs("", "package main; "+src, x)
 	if err != nil {
 		panic(err)
 	}
-	return string(by)
+
+	// final write, this time accounting for capid tag ordering
+	var buf bytes.Buffer
+	_, err = x.WriteTo(&buf)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(buf.Bytes())
 }
 
 // ExtractStructs pulls out the struct definitions from a golang source file.
@@ -303,6 +416,8 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
 
+var regexCapid = regexp.MustCompile(`capid:[ \t]*\"([^\"]+)\"`)
+
 func (x *Extractor) StartStruct(name string) error {
 	x.fieldCount = 0
 
@@ -370,18 +485,25 @@ const NotList = false
 
 func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit) error {
 
-	var goAnnot string
-	var loweredName string
+	curField := &Field{orderOfAppearance: x.fieldCount}
+
+	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
+
+	var tagValue string
+	loweredName := LowercaseCapnpFieldName(name)
+
 	if tag != nil {
 		//fmt.Printf("tag = %#v\n", tag)
 
 		if tag.Value != "" {
+
+			// capname tag
 			match := regexCapname.FindStringSubmatch(tag.Value)
 			if match != nil {
 				if len(match) == 2 {
 					//fmt.Printf("matched, using '%s' instead of '%s'\n", match[1], name)
 					loweredName = match[1]
-					goAnnot = tag.Value
+					tagValue = tag.Value
 
 					if isCapnpKeyword(loweredName) {
 						err := fmt.Errorf(`problem detected after applying the capname tag '%s' found on field '%s': '%s' is a reserved capnp word, so please use a *different* struct field tag (e.g. capname:"capnpName") to rename it`, tag.Value, name, loweredName)
@@ -390,11 +512,35 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 				}
 			}
+
+			// capid tag
+			match2 := regexCapid.FindStringSubmatch(tag.Value)
+			if match2 != nil {
+				if len(match2) == 2 {
+					//fmt.Printf("matched, applying capid tag '%s' for field '%s'\n", match2[1], loweredName)
+					n, err := strconv.Atoi(match2[1])
+					if err != nil {
+						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': could not convert to number, error: '%s'`, match2[1], name, x.curStruct.goName, err)
+						panic(err)
+						return err
+					}
+					fld, already := x.curStruct.capIdMap[n]
+					if already {
+						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': number '%d' is already taken by field '%s'`, match2[1], name, x.curStruct.goName, n, fld.goName)
+						panic(err)
+						return err
+
+					} else {
+						x.curStruct.capIdMap[n] = curField
+						curField.capIdFromTag = n
+					}
+				}
+			}
 		}
 
-	} else {
-		loweredName = LowercaseCapnpFieldName(name)
 	}
+
+	//fmt.Printf("\n\n\n GenerateStructField: name:'%s' -> loweredName:'%s'\n\n", name, loweredName)
 
 	if isCapnpKeyword(loweredName) {
 		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, name, loweredName)
@@ -447,6 +593,8 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		}
 	}
 
+	//fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
+
 	if isList {
 		fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
 	} else {
@@ -458,7 +606,14 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		x.curStruct.longestField = sz
 	}
 
-	x.curStruct.fld = append(x.curStruct.fld, &Field{capname: loweredName, capType: typeDisplayed, goName: name, goType: typeName, isList: isList, goAnnot: goAnnot})
+	curField.capname = loweredName
+	curField.capType = typeDisplayed
+	curField.goName = name
+	curField.goType = typeName
+	curField.isList = isList
+	curField.tagValue = tagValue
+
+	x.curStruct.fld = append(x.curStruct.fld, curField)
 	x.fieldCount++
 
 	return nil

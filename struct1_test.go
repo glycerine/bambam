@@ -53,7 +53,7 @@ type ExampleStruct1 struct {
 	Str string
 	N   int
 }`
-			cv.So(ExtractString2String(ex1), cv.ShouldEqual, `struct ExampleStruct1 { str @0: Text; n @1: Int64; } `)
+			cv.So(equalIgnoringSpaces(ExtractString2String(ex1), `struct ExampleStruct1 { str @0: Text; n @1: Int64; } `), cv.ShouldEqual, true)
 
 		})
 		cv.Convey("then we can extract structs that have other named structs inside", func() {
@@ -66,7 +66,7 @@ type NestingStruct struct {
 	One    int
 	Nester OneStruct
 }`
-			cv.So(ExtractString2String(exNest), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct NestingStruct { one @0: Int64; nester @1: OneStruct; } `)
+			cv.So(equalIgnoringSpaces(ExtractString2String(exNest), `struct OneStruct { one @0: Int64; } struct NestingStruct { one @0: Int64; nester @1: OneStruct; } `), cv.ShouldEqual, true)
 
 		})
 
@@ -86,7 +86,7 @@ type EmbedsOne struct {
 	OneStruct
 }`
 
-			cv.So(ExtractString2String(exEmbed), cv.ShouldEqual, `struct OneStruct { one @0: Int64; } struct EmbedsOne { OneStruct; } `)
+			cv.So(equalIgnoringSpaces(ExtractString2String(exEmbed), `struct OneStruct { one @0: Int64; } struct EmbedsOne { OneStruct; } `), cv.ShouldEqual, true)
 		})
 
 	})

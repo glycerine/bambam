@@ -29,13 +29,13 @@ type Data struct {
 
 func TestTagAnnotationWorks(t *testing.T) {
 
-	cv.Convey("Given a golang struct with an invalid capnp field name 'union', but with a field tag: `capname:\"MyNewFieldName\"`", t, func() {
-		cv.Convey("then we should use the capname MyNewFieldName for the field, and not fail the run.", func() {
-			ex0 := "type S struct { union string `capname:\"MyNewFieldName\"` \n}"
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S { MyNewFieldName @0: Text; } `)
+	cv.Convey("Given a golang struct with an invalid capnp field name 'Union', but with a field tag: `capname:\"MyNewFieldName\"`", t, func() {
+		cv.Convey("then we should use the capname MyNewFieldName for the field, and not stop the run.", func() {
+			ex0 := "type S struct { Union string `capname:\"MyNewFieldName\"` \n}"
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S { MyNewFieldName  @0:   Text; } `)
 
-			ex1 := "type S struct { union string `capname: \t \t \"MyNewFieldName\"` \n}"
-			cv.So(ExtractString2String(ex1), cv.ShouldEqual, `struct S { MyNewFieldName @0: Text; } `)
+			ex1 := "type S struct { Union string `capname: \t \t \"MyNewFieldName\"` \n}"
+			cv.So(ExtractString2String(ex1), cv.ShouldEqual, `struct S { MyNewFieldName  @0:   Text; } `)
 
 		})
 
@@ -47,10 +47,21 @@ func TestTagCapidWorks(t *testing.T) {
 	cv.Convey("Given the desire to preserve the field numbering in the generated Capnproto schema,", t, func() {
 		cv.Convey("when we add the tag: capid:\"1\", then the field should be numbered @1.", func() {
 			cv.Convey("and if there are fewer than 2 (numbered 0, 1) fields then we error out.", func() {
-				ex0 := "type S struct { a string `capid:\"1\"`; b string \n}"
-				cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S { b @0: Text; a @1: Text; } `)
+				ex0 := "type S struct { A string `capid:\"1\"`; B string \n}"
+				cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S { b  @0:   Text; a  @1:   Text; } `)
 			})
 		})
 
 	})
+}
+
+func TestLowercaseGoFieldsIgnoredByDefault(t *testing.T) {
+
+	cv.Convey("Given the traditional golang std lib behvaior of not serializing lowercase fields,", t, func() {
+		cv.Convey("then by default we should ignore lower case fields in writing the capnproto schema.", func() {
+			ex0 := "type S struct { a string; B string \n}"
+			cv.So(equalIgnoringSpaces(ExtractString2String(ex0), `struct S { b @0: Text; } `), cv.ShouldEqual, true)
+		})
+	})
+
 }

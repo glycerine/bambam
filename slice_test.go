@@ -15,7 +15,7 @@ func TestSliceToList(t *testing.T) {
 type s1 struct {
   MyInts []int
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1 { myInts @0: List(Int64); } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1 { myInts  @0:   List(Int64); } `)
 
 		})
 	})
@@ -31,7 +31,7 @@ type bbb struct {}
 type s1 struct {
   MyBees []bbb
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Bbb { } struct S1 { myBees @0: List(Bbb); } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Bbb { } struct S1 { myBees  @0:   List(Bbb); } `)
 
 		})
 	})
@@ -47,7 +47,7 @@ type big struct {}
 type s1 struct {
   MyBigs []*big
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Big { } struct S1 { myBigs @0: List(Big); } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Big { } struct S1 { myBigs  @0:   List(Big); } `)
 
 		})
 	})
@@ -62,7 +62,7 @@ func TestSliceOfByteBecomesData(t *testing.T) {
 type s1 struct {
   MyData []byte
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1 { myData @0: Data; } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1 { myData  @0:   Data; } `)
 
 		})
 	})
