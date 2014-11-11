@@ -158,12 +158,16 @@ type Extractor struct {
 	curStruct      *Struct
 	heldComment    string
 	extractPrivate bool
+
+	// map structs in go to struct names in capn
+	go2capn map[string]string
 }
 
 func NewExtractor() *Extractor {
 	return &Extractor{
 		pkgName:    "testpkg",
 		importDecl: "testpkg",
+		go2capn:    make(map[string]string),
 	}
 }
 
@@ -428,7 +432,8 @@ var regexCapid = regexp.MustCompile(`capid:[ \t]*\"([^\"]+)\"`)
 func (x *Extractor) StartStruct(name string) error {
 	x.fieldCount = 0
 
-	capname := UppercaseCapnpTypeName(name)
+	capname := UppercaseCapnpTypeName(name) + "Capn"
+	x.go2capn[name] = capname
 
 	// check for rename comment, capname:"newCapName"
 	if x.heldComment != "" {
@@ -601,7 +606,13 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 			typeDisplayed = "Uint8"
 		}
 	default:
-		typeDisplayed = UppercaseCapnpTypeName(typeName)
+
+		alreadyKnownCapnType := x.go2capn[typeName]
+		if alreadyKnownCapnType != "" {
+			typeDisplayed = alreadyKnownCapnType
+		} else {
+			typeDisplayed = UppercaseCapnpTypeName(typeName)
+		}
 
 		if isCapnpKeyword(typeDisplayed) {
 			err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, typeName, typeDisplayed)

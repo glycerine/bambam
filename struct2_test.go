@@ -1,11 +1,6 @@
 package main
 
-import (
-	"testing"
-
-	cv "github.com/smartystreets/goconvey/convey"
-)
-
+/* now that we add Capn suffix, I don't think this test is needed anymore
 func TestKeywordConflictDetection(t *testing.T) {
 
 	cv.Convey("Given a golang source file with a struct named Data", t, func() {
@@ -35,3 +30,4 @@ type void struct {
 
 	})
 }
+*/

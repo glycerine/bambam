@@ -16,7 +16,8 @@ type big struct {}
 type s1 struct {
   MyBig *big
 }`
-			cv.So(equalIgnoringSpaces(ExtractString2String(ex0), `struct Big { } struct S1 { myBig @0: Big; } `), cv.ShouldEqual, true)
+			cv.So(ExtractString2String(ex0), ShouldMatchModuloSpaces, `struct BigCapn { } struct S1Capn { myBig @0: BigCapn; } `)
+
 		})
 	})
 }

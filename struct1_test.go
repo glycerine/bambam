@@ -43,7 +43,7 @@ func TestSimpleStructExtraction(t *testing.T) {
 			ex0 := `
 type Empty1 struct {
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Empty1 { } `)
+			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct Empty1Capn { } `)
 
 		})
 		cv.Convey("then we can extract simple structs, without recursion or embedding", func() {
@@ -53,8 +53,7 @@ type ExampleStruct1 struct {
 	Str string
 	N   int
 }`
-			cv.So(equalIgnoringSpaces(ExtractString2String(ex1), `struct ExampleStruct1 { str @0: Text; n @1: Int64; } `), cv.ShouldEqual, true)
-
+			cv.So(ExtractString2String(ex1), ShouldMatchModuloSpaces, `struct ExampleStruct1Capn { str @0: Text; n @1: Int64; } `)
 		})
 		cv.Convey("then we can extract structs that have other named structs inside", func() {
 
@@ -66,7 +65,7 @@ type NestingStruct struct {
 	One    int
 	Nester OneStruct
 }`
-			cv.So(equalIgnoringSpaces(ExtractString2String(exNest), `struct OneStruct { one @0: Int64; } struct NestingStruct { one @0: Int64; nester @1: OneStruct; } `), cv.ShouldEqual, true)
+			cv.So(ExtractString2String(exNest), ShouldMatchModuloSpaces, `struct OneStructCapn { one @0: Int64; } struct NestingStructCapn { one @0: Int64; nester @1: OneStructCapn; } `)
 
 		})
 
@@ -86,7 +85,8 @@ type EmbedsOne struct {
 	OneStruct
 }`
 
-			cv.So(equalIgnoringSpaces(ExtractString2String(exEmbed), `struct OneStruct { one @0: Int64; } struct EmbedsOne { oneStruct @0: OneStruct; } `), cv.ShouldEqual, true)
+			cv.So(ExtractString2String(exEmbed), ShouldMatchModuloSpaces, `struct OneStructCapn { one @0: Int64; } struct EmbedsOneCapn { oneStruct @0: OneStructCapn; } `)
+
 		})
 
 	})

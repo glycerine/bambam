@@ -17,11 +17,10 @@ type In1 struct {
 	N   int
     D   float64
 }`
-			expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64; } `
+			expect1 := `struct In1Capn { str @0: Text; n @1: Int64; d @2: Float64; } `
 			// List(Float64) next
 
-			cv.So(equalIgnoringSpaces(ExtractString2String(in1), expect1), cv.ShouldEqual, true)
-
+			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
 		})
 	})
 }
@@ -37,11 +36,10 @@ type in1 struct {
 	N   int
     D   float64
 }`
-			expect1 := `struct In1 { str @0: Text; n @1: Int64; d @2: Float64;}`
+			expect1 := `struct In1Capn { str @0: Text; n @1: Int64; d @2: Float64;}`
 			// List(Float64) next
 
-			cv.So(equalIgnoringSpaces(ExtractString2String(in1), expect1), cv.ShouldEqual, true)
-
+			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
 		})
 	})
 }

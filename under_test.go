@@ -20,7 +20,7 @@ func TestUnderScoreFieldNamesRenamed(t *testing.T) {
 type s1 struct {
   Hello_world int
 }`
-			cv.So(equalIgnoringSpaces(ExtractString2String(ex0), `struct S1 { helloWorld @0: Int64; } `), cv.ShouldEqual, true)
+			cv.So(ExtractString2String(ex0), ShouldMatchModuloSpaces, `struct S1Capn { helloWorld @0: Int64; } `)
 		})
 	})
 }
