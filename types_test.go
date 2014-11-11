@@ -43,3 +43,16 @@ type in1 struct {
 		})
 	})
 }
+
+func TestNonStructTypeDefsAreIgnored(t *testing.T) {
+
+	cv.Convey("Given a go type definition 'type SyncMsg int32' that isn't a struct definition,", t, func() {
+		cv.Convey("then bambam should ignore it and not define a new SyncMsgCapn type", func() {
+
+			in1 := `type SyncMsg int32`
+			expect1 := ``
+
+			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
+		})
+	})
+}
