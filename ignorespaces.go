@@ -8,7 +8,7 @@ import (
 const (
 	success             = ""
 	needExactValues     = "This assertion requires exactly %d comparison values (you provided %d)."
-	shouldMatchModulo   = "Expected string '%s'\n     and string '%s'\n to match (ignoring %s)\n (but they did not!)"
+	shouldMatchModulo   = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!)"
 	shouldBothBeStrings = "Both arguments to this assertion must be strings (you provided %v and %v)."
 )
 
@@ -33,12 +33,24 @@ func ShouldMatchModulo(ignoring map[rune]bool, actual interface{}, expected ...i
 	if stringsEqualIgnoring(value, expec, ignoring) {
 		return success
 	} else {
-		ignored := "{ "
-		for k := range ignoring {
-			ignored = ignored + fmt.Sprintf("'%c', ", k)
+		ignored := "{"
+		switch len(ignoring) {
+		case 0:
+			return fmt.Sprintf(shouldMatchModulo, expec, value, "nothing")
+		case 1:
+			for k := range ignoring {
+				ignored = ignored + fmt.Sprintf("'%c'", k)
+			}
+			ignored = ignored + "}"
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored)
+
+		default:
+			for k := range ignoring {
+				ignored = ignored + fmt.Sprintf("'%c', ", k)
+			}
+			ignored = ignored + "}"
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored)
 		}
-		ignored = ignored + " }"
-		return fmt.Sprintf(shouldMatchModulo, value, expec, ignored)
 	}
 }
 

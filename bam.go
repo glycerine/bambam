@@ -160,14 +160,14 @@ type Extractor struct {
 	extractPrivate bool
 
 	// map structs in go to struct names in capn
-	go2capn map[string]string
+	goType2capType map[string]string
 }
 
 func NewExtractor() *Extractor {
 	return &Extractor{
-		pkgName:    "testpkg",
-		importDecl: "testpkg",
-		go2capn:    make(map[string]string),
+		pkgName:        "testpkg",
+		importDecl:     "testpkg",
+		goType2capType: make(map[string]string),
 	}
 }
 
@@ -213,15 +213,21 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 
 		for i, fld := range s.fld {
 			SetSpaces(&spaces, s.longestField, len(fld.capname))
+
+			capType, already := x.goType2capType[fld.goType]
+			if !already {
+				capType = fld.capType
+			}
+
 			if fld.isList {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), fld.capType, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
 				}
 
 			} else {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), fld.capType, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
@@ -319,10 +325,15 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 							//fmt.Printf("\n\n  in ts2 = %#v\n", ts2)
 							//goon.Dump(ts2)
 
-							switch ts2.Type.(type) {
+							switch ty := ts2.Type.(type) {
 							default:
 								// *ast.InterfaceType and *ast.Ident end up here.
 								//fmt.Printf("\n\n unrecog type ty = %#v\n", ty)
+							case (*ast.Ident):
+								goNewTypeName := ts2.Name.Obj.Name
+								goTargetTypeName := ty.Name
+								x.NoteTypedef(goNewTypeName, goTargetTypeName)
+
 							case (*ast.StructType):
 								stru := ts2.Type.(*ast.StructType)
 
@@ -425,6 +436,12 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 	return x.out.Bytes(), err
 }
 
+func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
+	fmt.Printf("\n\n NoteTypedef: %s -> %s\n", goNewTypeName, goTargetTypeName)
+	// we just want to preserve the mapping, without adding Capn suffix
+	x.goType2capType[goNewTypeName] = goNewTypeName
+}
+
 var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
 
 var regexCapid = regexp.MustCompile(`capid:[ \t]*\"([^\"]+)\"`)
@@ -437,7 +454,7 @@ func (x *Extractor) StartStruct(name string) error {
 	x.fieldCount = 0
 
 	capname := GoType2CapnType(name)
-	x.go2capn[name] = capname
+	x.goType2capType[name] = capname
 
 	// check for rename comment, capname:"newCapName"
 	if x.heldComment != "" {
@@ -611,14 +628,14 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 		}
 	default:
 
-		alreadyKnownCapnType := x.go2capn[typeName]
+		alreadyKnownCapnType := x.goType2capType[typeName]
 		if alreadyKnownCapnType != "" {
-			//fmt.Printf("\n\n debug: x.go2capn[typeName='%s'] -> '%s'\n", typeName, alreadyKnownCapnType)
+			//fmt.Printf("\n\n debug: x.goType2capType[typeName='%s'] -> '%s'\n", typeName, alreadyKnownCapnType)
 			typeDisplayed = alreadyKnownCapnType
 		} else {
 			typeDisplayed = GoType2CapnType(typeName)
-			//fmt.Printf("\n\n debug: adding to  x.go2capn[typeName='%s'] = '%s'\n", typeName, typeDisplayed)
-			x.go2capn[typeName] = typeDisplayed
+			//fmt.Printf("\n\n debug: adding to  x.goType2capType[typeName='%s'] = '%s'\n", typeName, typeDisplayed)
+			x.goType2capType[typeName] = typeDisplayed
 		}
 
 		if isCapnpKeyword(typeDisplayed) {
