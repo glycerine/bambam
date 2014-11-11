@@ -437,7 +437,6 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 }
 
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
-	fmt.Printf("\n\n NoteTypedef: %s -> %s\n", goNewTypeName, goTargetTypeName)
 	// we just want to preserve the mapping, without adding Capn suffix
 	x.goType2capType[goNewTypeName] = goNewTypeName
 }
