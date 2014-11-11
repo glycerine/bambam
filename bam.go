@@ -429,10 +429,14 @@ var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
 
 var regexCapid = regexp.MustCompile(`capid:[ \t]*\"([^\"]+)\"`)
 
+func GoType2CapnType(gotypeName string) string {
+	return UppercaseCapnpTypeName(gotypeName) + "Capn"
+}
+
 func (x *Extractor) StartStruct(name string) error {
 	x.fieldCount = 0
 
-	capname := UppercaseCapnpTypeName(name) + "Capn"
+	capname := GoType2CapnType(name)
 	x.go2capn[name] = capname
 
 	// check for rename comment, capname:"newCapName"
@@ -500,6 +504,8 @@ const YesEmbedded = true
 
 func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
 
+	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
+
 	// if we are ignoring private (lowercase first letter) fields, then stop here.
 	if !IsEmbedded {
 		if len(name) > 0 && unicode.IsLower([]rune(name)[0]) && !x.extractPrivate {
@@ -508,8 +514,6 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	}
 
 	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded}
-
-	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
 
 	var tagValue string
 	loweredName := underToCamelCase(LowercaseCapnpFieldName(name))
@@ -609,9 +613,12 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 		alreadyKnownCapnType := x.go2capn[typeName]
 		if alreadyKnownCapnType != "" {
+			//fmt.Printf("\n\n debug: x.go2capn[typeName='%s'] -> '%s'\n", typeName, alreadyKnownCapnType)
 			typeDisplayed = alreadyKnownCapnType
 		} else {
-			typeDisplayed = UppercaseCapnpTypeName(typeName)
+			typeDisplayed = GoType2CapnType(typeName)
+			//fmt.Printf("\n\n debug: adding to  x.go2capn[typeName='%s'] = '%s'\n", typeName, typeDisplayed)
+			x.go2capn[typeName] = typeDisplayed
 		}
 
 		if isCapnpKeyword(typeDisplayed) {
