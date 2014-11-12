@@ -195,6 +195,15 @@ func %sToGo(src *%s, dest *%s) *%s {
   return dest } 
 `, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
+		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
+func %sGoToCapn(seg *capn.Segment, src *%s, dest *%s) *%s { 
+  if dest = nil {
+      dest := testpkg.New%s(seg)
+  }
+  %s
+  return dest } 
+`, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
+
 	}
 }
 
@@ -211,6 +220,24 @@ func (x *Extractor) SettersToGo(goName string) string {
 		switch f.goType {
 		case "int":
 			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+		}
+	}
+	return string(buf.Bytes())
+}
+
+func (x *Extractor) SettersToCapn(goName string) string {
+	var buf bytes.Buffer
+	myStruct := x.srs[goName]
+	if myStruct == nil {
+		panic(fmt.Sprintf("bad goName '%s'", goName))
+	}
+	fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", myStruct)
+	for i, f := range myStruct.fld {
+		fmt.Printf("\n\n SettersToCapn running on myStruct.fld[%d] = %#v\n", i, f)
+
+		switch f.goType {
+		case "int":
+			fmt.Fprintf(&buf, "dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
 		}
 	}
 	return string(buf.Bytes())
@@ -248,11 +275,31 @@ func (s ByOrderOfAppearance) Less(i, j int) bool {
 	return s[i].orderOfAppearance < s[j].orderOfAppearance
 }
 
+type ByName []*Struct
+
+func (s ByName) Len() int {
+	return len(s)
+}
+func (s ByName) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByName) Less(i, j int) bool {
+	return s[i].goName < s[j].goName
+}
+
 func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 
 	var m int
 	var spaces string
-	for _, s := range x.srs {
+
+	// sort structs alphabetically to get a stable (testable) ordering.
+	sortme := ByName(make([]*Struct, 0, len(x.srs)))
+	for _, strct := range x.srs {
+		sortme = append(sortme, strct)
+	}
+	sort.Sort(ByName(sortme))
+
+	for _, s := range sortme {
 
 		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.capName, x.fieldSuffix)
 		n += int64(m)
@@ -340,7 +387,7 @@ func ExtractGoToCapnCode(src string, goName string) string {
 	if err != nil {
 		panic(err)
 	}
-
+	x.GenerateTranslators()
 	return string(x.ToCapnCodeFor(goName))
 }
 

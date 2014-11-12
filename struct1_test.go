@@ -65,7 +65,7 @@ type NestingStruct struct {
 	One    int
 	Nester OneStruct
 }`
-			cv.So(ExtractString2String(exNest), ShouldMatchModuloSpaces, `struct OneStructCapn { one @0: Int64; } struct NestingStructCapn { one @0: Int64; nester @1: OneStructCapn; } `)
+			cv.So(ExtractString2String(exNest), ShouldMatchModuloSpaces, `struct NestingStructCapn { one @0: Int64; nester @1: OneStructCapn; } struct OneStructCapn { one @0: Int64; }  `)
 
 		})
 
@@ -85,7 +85,7 @@ type EmbedsOne struct {
 	OneStruct
 }`
 
-			cv.So(ExtractString2String(exEmbed), ShouldMatchModuloSpaces, `struct OneStructCapn { one @0: Int64; } struct EmbedsOneCapn { oneStruct @0: OneStructCapn; } `)
+			cv.So(ExtractString2String(exEmbed), ShouldMatchModuloSpaces, `struct EmbedsOneCapn { oneStruct @0: OneStructCapn; } struct OneStructCapn { one @0: Int64; } `)
 
 		})
 

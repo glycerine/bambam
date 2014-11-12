@@ -30,16 +30,28 @@ type Extra struct {
   A int
   B int
 }`
-				code := ExtractCapnToGoCode(ex0, "Extra")
-				cv.So(code, ShouldMatchModuloWhiteSpace, `
+				toGoCode := ExtractCapnToGoCode(ex0, "Extra")
+				cv.So(toGoCode, ShouldMatchModuloWhiteSpace, `
 func ExtraCapnToGo(src *ExtraCapn, dest *Extra) *Extra { 
   if dest = nil { 
-    dest = &Extra{} 
+     dest = &Extra{} 
   }
   dest.A = src.A()
   dest.B = src.B()
   return dest } 
 `)
+
+				toCapnCode := ExtractGoToCapnCode(ex0, "Extra")
+				cv.So(toCapnCode, ShouldMatchModuloWhiteSpace, `
+func ExtraGoToCapn(seg *capn.Segment, src *Extra, dest *ExtraCapn) *ExtraCapn { 
+  if dest = nil {
+      dest := testpkg.NewExtraCapn(seg)
+  }
+  dest.SetA(src.A)
+  dest.SetB(src.B)
+  return dest } 
+`)
+
 			})
 		})
 	})
