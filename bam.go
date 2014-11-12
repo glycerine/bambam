@@ -23,8 +23,8 @@ func ParseCmdLine() string {
 		os.Exit(1)
 	}
 	fn := os.Args[1]
-	if !strings.HasSuffix(fn, ".go") {
-		fmt.Fprintf(os.Stderr, "error: bambam input file '%s' did not end in '.go'.\n")
+	if !strings.HasSuffix(fn, ".go") && !strings.HasSuffix(fn, ".go.txt") {
+		fmt.Fprintf(os.Stderr, "error: bambam input file '%s' did not end in '.go'.\n", fn)
 		os.Exit(1)
 	}
 	return fn
@@ -74,12 +74,14 @@ import capn "github.com/glycerine/go-capnproto"
 		panic(err)
 	}
 
-	_, _, err = CapnpCompilePath(schemaFN)
+	_, out, err := CapnpCompilePath(schemaFN)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("err: '%s', out: '%s'", err, out))
 	}
 	fmt.Printf("generated files in '%s'\n", x.compileDir.DirPath)
 	//x.Cleanup()
+	exec.Command("cp", readMe, "./"+x.compileDir.DirPath+"/"+readMe+".go").Run()
+	exec.Command("go", "build", "./"+x.compileDir.DirPath).Run()
 }
 
 type Field struct {

@@ -8,3 +8,6 @@ test:
 	perl -pi -e 's/main/testpkg/' translateCapn.go
 	mv translateCapn.go testpkg/
 	cd testpkg; go build
+
+clean:
+	rm -rf testdir_*
