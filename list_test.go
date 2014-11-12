@@ -28,10 +28,8 @@ type s1 struct {
     return dest
   } 
   
-  func s1GoToCapn(seg *capn.Segment, src *s1, dest S1Capn) S1Capn { 
-    if dest == nil {
-        dest := NewS1Capn(seg)
-    }
+  func s1GoToCapn(seg *capn.Segment, src *s1) S1Capn { 
+    dest := NewS1Capn(seg)
   
     // text list
     tl := seg.NewTextList(len(src.Names))

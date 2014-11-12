@@ -64,7 +64,9 @@ func main() {
 		panic(err)
 	}
 	defer translatorFile.Close()
-	fmt.Fprintf(translatorFile, "package main\n")
+	fmt.Fprintf(translatorFile, `package main
+import capn "github.com/glycerine/go-capnproto"
+`)
 
 	_, err = x.WriteToTranslators(translatorFile)
 	if err != nil {
@@ -221,14 +223,12 @@ func %sToGo(src %s, dest *%s) *%s {
 `, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
-func %sGoToCapn(seg *capn.Segment, src *%s, dest %s) %s { 
-  if dest == nil {
-      dest := New%s(seg)
-  }
+func %sGoToCapn(seg *capn.Segment, src *%s) %s { 
+  dest := New%s(seg)
 %s
   return dest
 } 
-`, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
+`, s.goName, s.goName, s.capName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
 }
