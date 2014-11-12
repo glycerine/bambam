@@ -39,7 +39,7 @@ func main() {
 
 	ExtractStructs(readMe, nil, x)
 
-	schemaFN := "schema.capnp"
+	schemaFN := x.compileDir.DirPath + "/schema.capnp"
 	schemaFile, err := os.Create(schemaFN)
 	if err != nil {
 		panic(err)
@@ -59,20 +59,27 @@ func main() {
 
 	// translator library of go functions is separate from the schema
 
-	translatorFile, err := os.Create("translateCapn.go")
+	translateFn := x.compileDir.DirPath + "/translateCapn.go"
+	translatorFile, err := os.Create(translateFn)
 	if err != nil {
 		panic(err)
 	}
 	defer translatorFile.Close()
-	fmt.Fprintf(translatorFile, `package main
+	fmt.Fprintf(translatorFile, `package %s
 import capn "github.com/glycerine/go-capnproto"
-`)
+`, x.pkgName)
 
 	_, err = x.WriteToTranslators(translatorFile)
 	if err != nil {
 		panic(err)
 	}
 
+	_, _, err = CapnpCompilePath(schemaFN)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("generated files in '%s'\n", x.compileDir.DirPath)
+	//x.Cleanup()
 }
 
 type Field struct {
@@ -208,6 +215,7 @@ func NewExtractor() *Extractor {
 		ToGoCode:   make(map[string][]byte),
 		ToCapnCode: make(map[string][]byte),
 		srs:        make(map[string]*Struct),
+		compileDir: NewTempDir(),
 	}
 }
 
@@ -493,6 +501,7 @@ func ExtractFromString(src string) ([]byte, error) {
 func ExtractString2String(src string) string {
 
 	x := NewExtractor()
+	defer x.Cleanup()
 	_, err := ExtractStructs("", "package main; "+src, x)
 	if err != nil {
 		panic(err)
@@ -515,6 +524,7 @@ func ExtractString2String(src string) string {
 func ExtractCapnToGoCode(src string, goName string) string {
 
 	x := NewExtractor()
+	defer x.Cleanup()
 	_, err := ExtractStructs("", "package main; "+src, x)
 	if err != nil {
 		panic(err)
@@ -526,6 +536,7 @@ func ExtractCapnToGoCode(src string, goName string) string {
 func ExtractGoToCapnCode(src string, goName string) string {
 
 	x := NewExtractor()
+	defer x.Cleanup()
 	_, err := ExtractStructs("", "package main; "+src, x)
 	if err != nil {
 		panic(err)
@@ -543,6 +554,7 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 	if x == nil {
 		x = NewExtractor()
+		defer x.Cleanup()
 	}
 
 	fset := token.NewFileSet() // positions are relative to fset
@@ -1015,7 +1027,6 @@ func (x *Extractor) CapnpCompileFragment(in []byte) ([]byte, error) {
 
 func CapnpCompilePath(fname string) (generatedGoFile []byte, comboOut []byte, err error) {
 	goOutFn := fname + ".go"
-	defer os.Remove(goOutFn)
 
 	by, err := exec.Command("capnp", "compile", "-ogo", fname).CombinedOutput()
 	if err != nil {
