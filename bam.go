@@ -39,22 +39,23 @@ func main() {
 
 	ExtractStructs(readMe, nil, x)
 
-	by := x.GenCapnpHeader()
-	os.Stdout.Write(by.Bytes())
-
-	schemaFile, err := os.Create("schema.capnp")
+	schemaFN := "schema.capnp"
+	schemaFile, err := os.Create(schemaFN)
 	if err != nil {
 		panic(err)
 	}
 	defer schemaFile.Close()
+
+	by := x.GenCapnpHeader()
+	schemaFile.Write(by.Bytes())
 
 	_, err = x.WriteToSchema(schemaFile)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("\n")
-	fmt.Printf("##compile with:\n\n##   capnp compile -ogo yourfile.capnp\n\n")
+	fmt.Fprintf(schemaFile, "\n")
+	fmt.Fprintf(schemaFile, "##compile with:\n\n##\n##\n##   capnp compile -ogo %s\n\n", schemaFN)
 
 	// translator library of go functions is separate from the schema
 
@@ -63,6 +64,7 @@ func main() {
 		panic(err)
 	}
 	defer translatorFile.Close()
+	fmt.Fprintf(translatorFile, "package main\n")
 
 	_, err = x.WriteToTranslators(translatorFile)
 	if err != nil {
@@ -73,6 +75,7 @@ func main() {
 
 type Field struct {
 	capname           string
+	Ucapname          string // Uppercased-first-letter of capname, as generated in go bindings.
 	capType           string
 	goName            string
 	goType            string
@@ -208,24 +211,24 @@ func (x *Extractor) GenerateTranslators() {
 
 	for _, s := range x.srs {
 		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
-func %sToGo(src *%s, dest *%s) *%s { 
+func %sToGo(src %s.%s, dest *%s) *%s { 
   if dest = nil { 
     dest = &%s{} 
   }
 %s
   return dest
 } 
-`, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
+`, s.capName, x.pkgName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
-func %sGoToCapn(seg *capn.Segment, src *%s, dest *%s) *%s { 
+func %sGoToCapn(seg *capn.Segment, src *%s, dest %s.%s) %s.%s { 
   if dest = nil {
-      dest := testpkg.New%s(seg)
+      dest := %s.New%s(seg)
   }
 %s
   return dest
 } 
-`, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
+`, s.goName, s.goName, x.pkgName, s.capName, x.pkgName, s.capName, x.pkgName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
 }
@@ -243,11 +246,13 @@ func (x *Extractor) SettersToGo(goName string) string {
 
 		switch f.goType {
 		case "int":
-			fallthrough
+			fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.Ucapname)
 		case "int64":
-			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+			fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.Ucapname)
+		case "float64":
+			fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.Ucapname)
 		case "string":
-			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.Ucapname)
 		}
 	}
 	return string(buf.Bytes())
@@ -264,13 +269,54 @@ func (x *Extractor) SettersToCapn(goName string) string {
 	for _, f := range myStruct.fld {
 		//fmt.Printf("\n\n SettersToCapn running on myStruct.fld[%d] = %#v\n", i, f)
 
-		switch f.goType {
-		case "int":
-			fallthrough
-		case "int64":
-			fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
-		case "string":
-			fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
+		if f.isList {
+
+			switch f.goType {
+			case "int":
+				//fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.capname, f.goName)
+			case "int64":
+				//fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.capname, f.goName)
+			case "float64":
+				//fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.capname, f.goName)
+			case "string":
+				fmt.Fprintf(&buf, `
+  // text list
+  tl := seg.NewTextList(len(src.%s))
+  for i := range src.%s {
+     tl.Set(i, src.%s[i])
+  }
+  dest.Set%s(tl)
+`, f.goName, f.goName, f.goName, f.Ucapname)
+			default:
+				// handle list of struct
+				fmt.Fprintf(&buf, `
+  // %s -> %s (go slice to capn list)
+  if len(src.%s) > 0 {
+		typedList := %s.New%sList(seg, len(src.%s))
+		plist := capn.PointerList(typedList)
+		i := 0
+		for _, ele := range src.%s {
+			plist.Set(i, capn.Object(%sGoToCapn(seg, ele, dest)))
+			i++
+		}
+		dest.Set%s(typedList)
+	}
+`, f.goName, f.Ucapname, f.goName, x.pkgName, f.Ucapname, f.goName, f.goName, f.goName, f.Ucapname)
+
+			} // end switch f.goType
+
+		} else {
+
+			switch f.goType {
+			case "int":
+				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.Ucapname, f.goName)
+			case "int64":
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+			case "float64":
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+			case "string":
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+			}
 		}
 	}
 	return string(buf.Bytes())
@@ -651,7 +697,7 @@ var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
 var regexCapid = regexp.MustCompile(`capid:[ \t]*\"([^\"]+)\"`)
 
 func GoType2CapnType(gotypeName string) string {
-	return UppercaseCapnpTypeName(gotypeName) + "Capn"
+	return UppercaseFirstLetter(gotypeName) + "Capn"
 }
 
 func (x *Extractor) StartStruct(goName string) error {
@@ -695,7 +741,7 @@ func (x *Extractor) GenerateComment(c string) {
 	x.heldComment = x.heldComment + c + "\n"
 }
 
-func UppercaseCapnpTypeName(name string) string {
+func UppercaseFirstLetter(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -864,6 +910,9 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	}
 
 	curField.capname = loweredName
+
+	curField.Ucapname = UppercaseFirstLetter(loweredName)
+
 	curField.capType = typeDisplayed
 	curField.goName = name
 	curField.goType = typeName
