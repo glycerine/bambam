@@ -77,7 +77,7 @@ import capn "github.com/glycerine/go-capnproto"
 
 type Field struct {
 	capname           string
-	Ucapname          string // Uppercased-first-letter of capname, as generated in go bindings.
+	GoCapGoName       string // Uppercased-first-letter of capname, as generated in go bindings.
 	capType           string
 	goName            string
 	goType            string
@@ -193,6 +193,8 @@ type Extractor struct {
 	srs        map[string]*Struct
 	ToGoCode   map[string][]byte
 	ToCapnCode map[string][]byte
+
+	compileDir *TempDir
 }
 
 func NewExtractor() *Extractor {
@@ -206,6 +208,12 @@ func NewExtractor() *Extractor {
 		ToGoCode:   make(map[string][]byte),
 		ToCapnCode: make(map[string][]byte),
 		srs:        make(map[string]*Struct),
+	}
+}
+
+func (x *Extractor) Cleanup() {
+	if x.compileDir != nil {
+		x.compileDir.Cleanup()
 	}
 }
 
@@ -245,17 +253,17 @@ func (x *Extractor) SettersToGo(goName string) string {
 	for _, f := range myStruct.fld {
 
 		if f.isList {
-			fmt.Fprintf(&buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.Ucapname)
+			fmt.Fprintf(&buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
 		} else {
 			switch f.goType {
 			case "int":
-				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.Ucapname)
+				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.GoCapGoName)
 			case "int64":
-				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.Ucapname)
+				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.GoCapGoName)
 			case "float64":
-				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.Ucapname)
+				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.GoCapGoName)
 			case "string":
-				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.Ucapname)
+				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.GoCapGoName)
 			}
 		}
 	}
@@ -290,9 +298,11 @@ func (x *Extractor) SettersToCapn(goName string) string {
      tl.Set(i, src.%s[i])
   }
   dest.Set%s(tl)
-`, f.goName, f.goName, f.goName, f.Ucapname)
+`, f.goName, f.goName, f.goName, f.GoCapGoName)
+
 			default:
 				// handle list of struct
+				fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
 				fmt.Fprintf(&buf, `
   // %s -> %s (go slice to capn list)
   if len(src.%s) > 0 {
@@ -300,12 +310,12 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		plist := capn.PointerList(typedList)
 		i := 0
 		for _, ele := range src.%s {
-			plist.Set(i, capn.Object(%sGoToCapn(seg, ele, dest)))
+			plist.Set(i, capn.Object(%sGoToCapn(seg, &ele)))
 			i++
 		}
 		dest.Set%s(typedList)
 	}
-`, f.goName, f.Ucapname, f.goName, f.Ucapname, f.goName, f.goName, f.goName, f.Ucapname)
+`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, f.GoCapGoName)
 
 			} // end switch f.goType
 
@@ -313,13 +323,13 @@ func (x *Extractor) SettersToCapn(goName string) string {
 
 			switch f.goType {
 			case "int":
-				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.Ucapname, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.GoCapGoName, f.goName)
 			case "int64":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
 			case "float64":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
 			case "string":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.Ucapname, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
 			}
 		}
 	}
@@ -915,7 +925,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 	curField.capname = loweredName
 
-	curField.Ucapname = UppercaseFirstLetter(loweredName)
+	curField.GoCapGoName = UppercaseFirstLetter(loweredName)
 
 	curField.capType = typeDisplayed
 	curField.goName = name
@@ -925,6 +935,8 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 	x.curStruct.fld = append(x.curStruct.fld, curField)
 	x.fieldCount++
+
+	fmt.Printf("\n\n curField = %#v\n", curField)
 
 	return nil
 }
@@ -970,18 +982,21 @@ func (x *Extractor) AssembleCapnpFile(in []byte) *bytes.Buffer {
 	return by
 }
 
-func CapnpCompileFragment(in []byte) []byte {
+func CapnpCompileFragment(in []byte) ([]byte, error, *Extractor) {
 	x := NewExtractor()
-	return x.CapnpCompileFragment(in)
+	out, err := x.CapnpCompileFragment(in)
+	return out, err, x
 }
 
-func (x *Extractor) CapnpCompileFragment(in []byte) []byte {
+func (x *Extractor) CapnpCompileFragment(in []byte) ([]byte, error) {
 
-	f, err := ioutil.TempFile(".", "capnp.test.")
-	if err != nil {
-		panic(err)
+	if x.compileDir != nil {
+		x.compileDir.Cleanup()
 	}
-	defer os.Remove(f.Name())
+	x.compileDir = NewTempDir()
+
+	f := x.compileDir.TempFile()
+	//fnCapnGoOutput := tempfile.Name() + ".go"
 
 	by := x.AssembleCapnpFile(in)
 	debug := string(by.Bytes())
@@ -989,22 +1004,27 @@ func (x *Extractor) CapnpCompileFragment(in []byte) []byte {
 	f.Write(by.Bytes())
 	f.Close()
 
-	compiled, err := CapnpCompilePath(f.Name())
+	compiled, combinedOut, err := CapnpCompilePath(f.Name())
 	if err != nil {
-		return []byte(fmt.Sprintf("error compiling the generated capnp code: '%s'; error: '%s'\n", debug, err) + string(compiled))
+		errmsg := fmt.Sprintf("error compiling the generated capnp code: '%s'; error: '%s'\n", debug, err) + string(combinedOut)
+		return []byte(errmsg), fmt.Errorf(errmsg)
 	}
 
-	return compiled
+	return compiled, nil
 }
 
-func CapnpCompilePath(fname string) ([]byte, error) {
-	defer os.Remove(fname + ".go")
+func CapnpCompilePath(fname string) (generatedGoFile []byte, comboOut []byte, err error) {
+	goOutFn := fname + ".go"
+	defer os.Remove(goOutFn)
 
 	by, err := exec.Command("capnp", "compile", "-ogo", fname).CombinedOutput()
 	if err != nil {
-		return by, err
+		return []byte{}, by, err
 	}
-	return by, nil
+
+	generatedGoFile, err = ioutil.ReadFile(goOutFn)
+
+	return generatedGoFile, by, err
 }
 
 func SetSpaces(spaces *string, Max int, Len int) {

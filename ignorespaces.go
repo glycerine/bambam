@@ -8,7 +8,7 @@ import (
 const (
 	success             = ""
 	needExactValues     = "This assertion requires exactly %d comparison values (you provided %d)."
-	shouldMatchModulo   = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!)"
+	shouldMatchModulo   = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d)"
 	shouldBothBeStrings = "Both arguments to this assertion must be strings (you provided %v and %v)."
 )
 
@@ -30,26 +30,37 @@ func ShouldMatchModulo(ignoring map[rune]bool, actual interface{}, expected ...i
 		return fmt.Sprintf(shouldBothBeStrings, reflect.TypeOf(actual), reflect.TypeOf(expected[0]))
 	}
 
-	if stringsEqualIgnoring(value, expec, ignoring) {
+	equal, vpos, _ := stringsEqualIgnoring(value, expec, ignoring)
+	if equal {
 		return success
 	} else {
+		// extract the string fragment at the differnce point to make it easier to diagnose
+		diffpoint := ""
+		const diffMax = 20
+		vrune := []rune(value)
+		n := len(vrune) - vpos + 1
+		if n > diffMax {
+			n = diffMax
+		}
+		diffpoint = string(vrune[vpos-1 : (vpos - 1 + n)])
+
 		ignored := "{"
 		switch len(ignoring) {
 		case 0:
-			return fmt.Sprintf(shouldMatchModulo, expec, value, "nothing")
+			return fmt.Sprintf(shouldMatchModulo, expec, value, "nothing", diffpoint, vpos-1)
 		case 1:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c'", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored)
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1)
 
 		default:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c', ", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored)
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1)
 		}
 	}
 }
@@ -85,31 +96,42 @@ func ShouldStartWithModuloWhiteSpace(actual interface{}, expectedPrefix ...inter
 		return fmt.Sprintf(shouldBothBeStrings, reflect.TypeOf(actual), reflect.TypeOf(expectedPrefix[0]))
 	}
 
-	if hasPrefixEqualIgnoring(value, expecPrefix, ignoring) {
+	equal, vpos, _ := hasPrefixEqualIgnoring(value, expecPrefix, ignoring)
+	if equal {
 		return success
 	} else {
+		diffpoint := ""
+		const diffMax = 20
+		vrune := []rune(value)
+		n := len(vrune) - vpos + 1
+		if n > diffMax {
+			n = diffMax
+		}
+		diffpoint = string(vrune[vpos-1 : (vpos - 1 + n)])
+
 		ignored := "{"
 		switch len(ignoring) {
 		case 0:
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, "nothing")
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, "nothing", diffpoint, vpos-1)
 		case 1:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c'", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored)
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored, diffpoint, vpos-1)
 
 		default:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c', ", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored)
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored, diffpoint, vpos-1)
 		}
 	}
 }
 
-func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) bool {
+// returns if equal, and if not then rpos and spos hold the position of first mismatch
+func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) (equal bool, rpos int, spos int) {
 	r := []rune(a)
 	s := []rune(b)
 
@@ -135,27 +157,28 @@ func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) bool {
 		}
 
 		if nextr >= len(r) && nexts >= len(s) {
-			return true
+			return true, -1, -1 // full match
 		}
 
 		if nextr >= len(r) {
-			return false
+			return false, nextr, nexts
 		}
 		if nexts >= len(s) {
-			return false
+			return false, nextr, nexts
 		}
 
 		if r[nextr] != s[nexts] {
-			return false
+			return false, nextr, nexts
 		}
 		nextr++
 		nexts++
 	}
 
-	return false
+	return false, nextr, nexts
 }
 
-func hasPrefixEqualIgnoring(str, prefix string, ignoring map[rune]bool) bool {
+// returns if equal, and if not then rpos and spos hold the position of first mismatch
+func hasPrefixEqualIgnoring(str, prefix string, ignoring map[rune]bool) (equal bool, spos int, rpos int) {
 	s := []rune(str)
 	r := []rune(prefix)
 
@@ -181,24 +204,24 @@ func hasPrefixEqualIgnoring(str, prefix string, ignoring map[rune]bool) bool {
 		}
 
 		if nextr >= len(r) && nexts >= len(s) {
-			return true
+			return true, -1, -1 // full match
 		}
 
 		if nextr >= len(r) {
-			return true // for prefix testing
+			return true, nexts, nextr // for prefix testing
 		}
 		if nexts >= len(s) {
-			return false
+			return false, nexts, nextr
 		}
 
 		if r[nextr] != s[nexts] {
-			return false
+			return false, nexts, nextr
 		}
 		nextr++
 		nexts++
 	}
 
-	return false
+	return false, nexts, nextr
 }
 
 func need(needed int, expected []interface{}) string {

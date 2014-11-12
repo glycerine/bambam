@@ -27,8 +27,10 @@ type in1 struct {
 			//cv.So(string(s1), cv.ShouldEqual, expect1)
 
 			// no news on compile is good news
-			cv.So(string(CapnpCompileFragment(s1)), cv.ShouldEqual, ``)
+			_, err, x := CapnpCompileFragment(s1)
+			cv.So(err, cv.ShouldEqual, nil)
 
+			x.Cleanup()
 		})
 	})
 }
