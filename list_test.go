@@ -19,18 +19,18 @@ type s1 struct {
 			expected0 := `
   struct S1Capn { names  @0:   List(Text); } 
   
-  func S1CapnToGo(src testpkg.S1Capn, dest *s1) *s1 { 
-    if dest = nil { 
+  func S1CapnToGo(src S1Capn, dest *s1) *s1 { 
+    if dest == nil { 
       dest = &s1{} 
     }
-    dest.Names = src.Names()
+    dest.Names = src.Names().ToArray()
   
     return dest
   } 
   
-  func s1GoToCapn(seg *capn.Segment, src *s1, dest testpkg.S1Capn) testpkg.S1Capn { 
-    if dest = nil {
-        dest := testpkg.NewS1Capn(seg)
+  func s1GoToCapn(seg *capn.Segment, src *s1, dest S1Capn) S1Capn { 
+    if dest == nil {
+        dest := NewS1Capn(seg)
     }
   
     // text list

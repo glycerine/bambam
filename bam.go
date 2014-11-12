@@ -211,24 +211,24 @@ func (x *Extractor) GenerateTranslators() {
 
 	for _, s := range x.srs {
 		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
-func %sToGo(src %s.%s, dest *%s) *%s { 
-  if dest = nil { 
+func %sToGo(src %s, dest *%s) *%s { 
+  if dest == nil { 
     dest = &%s{} 
   }
 %s
   return dest
 } 
-`, s.capName, x.pkgName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
+`, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
-func %sGoToCapn(seg *capn.Segment, src *%s, dest %s.%s) %s.%s { 
-  if dest = nil {
-      dest := %s.New%s(seg)
+func %sGoToCapn(seg *capn.Segment, src *%s, dest %s) %s { 
+  if dest == nil {
+      dest := New%s(seg)
   }
 %s
   return dest
 } 
-`, s.goName, s.goName, x.pkgName, s.capName, x.pkgName, s.capName, x.pkgName, s.capName, x.SettersToCapn(s.goName)))
+`, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
 }
@@ -244,15 +244,19 @@ func (x *Extractor) SettersToGo(goName string) string {
 	//fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
 	for _, f := range myStruct.fld {
 
-		switch f.goType {
-		case "int":
-			fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.Ucapname)
-		case "int64":
-			fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.Ucapname)
-		case "float64":
-			fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.Ucapname)
-		case "string":
-			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.Ucapname)
+		if f.isList {
+			fmt.Fprintf(&buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.Ucapname)
+		} else {
+			switch f.goType {
+			case "int":
+				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.Ucapname)
+			case "int64":
+				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.Ucapname)
+			case "float64":
+				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.Ucapname)
+			case "string":
+				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.Ucapname)
+			}
 		}
 	}
 	return string(buf.Bytes())
@@ -292,7 +296,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				fmt.Fprintf(&buf, `
   // %s -> %s (go slice to capn list)
   if len(src.%s) > 0 {
-		typedList := %s.New%sList(seg, len(src.%s))
+		typedList := New%sList(seg, len(src.%s))
 		plist := capn.PointerList(typedList)
 		i := 0
 		for _, ele := range src.%s {
@@ -301,7 +305,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		}
 		dest.Set%s(typedList)
 	}
-`, f.goName, f.Ucapname, f.goName, x.pkgName, f.Ucapname, f.goName, f.goName, f.goName, f.Ucapname)
+`, f.goName, f.Ucapname, f.goName, f.Ucapname, f.goName, f.goName, f.goName, f.Ucapname)
 
 			} // end switch f.goType
 
