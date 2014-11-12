@@ -22,9 +22,25 @@ type Extra struct {
 
 func TestMarshal(t *testing.T) {
 
-	cv.Convey("Given go structs", t, func() {
-		cv.Convey("then bambam should generate automatic marshal-ing code from the go into the capnproto objects", func() {
-
+	cv.Convey("Given go struct Extra", t, func() {
+		cv.Convey("then the generated ExtraCapntoGo() code should copy content from an ExtraCapn to an Extra struct.", func() {
+			cv.Convey("and should handle int fields", func() {
+				ex0 := `
+type Extra struct {
+  A int
+  B int
+}`
+				code := ExtractCapnToGoCode(ex0, "Extra")
+				cv.So(code, ShouldMatchModuloWhiteSpace, `
+func ExtraCapnToGo(src *ExtraCapn, dest *Extra) *Extra { 
+  if dest = nil { 
+    dest = &Extra{} 
+  }
+  dest.A = src.A()
+  dest.B = src.B()
+  return dest } 
+`)
+			})
 		})
 	})
 }
@@ -32,7 +48,7 @@ func TestMarshal(t *testing.T) {
 func TestUnMarshal(t *testing.T) {
 
 	cv.Convey("Given go structs", t, func() {
-		cv.Convey("then bambam should generate automatic unmarshal-ing code from the capnp into the go structs", func() {
+		cv.Convey("then the generated Unmarshal() code should copy from the capnp into the go structs", func() {
 
 		})
 	})

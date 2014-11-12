@@ -138,9 +138,10 @@ func advanceWrite(pw *int, final []*Field) bool {
 	return true
 }
 
-func NewStruct(capname string) *Struct {
+func NewStruct(capName, goName string) *Struct {
 	return &Struct{
-		capName:  capname,
+		capName:  capName,
+		goName:   goName,
 		fld:      []*Field{},
 		capIdMap: map[int]*Field{},
 	}
@@ -154,13 +155,18 @@ type Extractor struct {
 	fieldPrefix string
 	fieldSuffix string
 
-	srs            []*Struct
 	curStruct      *Struct
 	heldComment    string
 	extractPrivate bool
 
-	// map structs in go to struct names in capn
+	// map structs' goName <-> capName
 	goType2capType map[string]string
+	capType2goType map[string]string
+
+	// key is goName
+	srs        map[string]*Struct
+	ToGoCode   map[string][]byte
+	ToCapnCode map[string][]byte
 }
 
 func NewExtractor() *Extractor {
@@ -168,7 +174,54 @@ func NewExtractor() *Extractor {
 		pkgName:        "testpkg",
 		importDecl:     "testpkg",
 		goType2capType: make(map[string]string),
+		capType2goType: make(map[string]string),
+
+		// key is goTypeName
+		ToGoCode:   make(map[string][]byte),
+		ToCapnCode: make(map[string][]byte),
+		srs:        make(map[string]*Struct),
 	}
+}
+
+func (x *Extractor) GenerateTranslators() {
+
+	for _, s := range x.srs {
+		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
+func %sToGo(src *%s, dest *%s) *%s { 
+  if dest = nil { 
+    dest = &%s{} 
+  }
+  %s
+  return dest } 
+`, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
+
+	}
+}
+
+func (x *Extractor) SettersToGo(goName string) string {
+	var buf bytes.Buffer
+	myStruct := x.srs[goName]
+	if myStruct == nil {
+		panic(fmt.Sprintf("bad goName '%s'", goName))
+	}
+	fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
+	for i, f := range myStruct.fld {
+		fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
+
+		switch f.goType {
+		case "int":
+			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+		}
+	}
+	return string(buf.Bytes())
+}
+
+func (x *Extractor) ToGoCodeFor(goName string) []byte {
+	return x.ToGoCode[goName]
+}
+
+func (x *Extractor) ToCapnCodeFor(goStructName string) []byte {
+	return x.ToCapnCode[goStructName]
 }
 
 type ByFinalOrder []*Field
@@ -267,6 +320,28 @@ func ExtractString2String(src string) string {
 	}
 
 	return string(buf.Bytes())
+}
+
+func ExtractCapnToGoCode(src string, goName string) string {
+
+	x := NewExtractor()
+	_, err := ExtractStructs("", "package main; "+src, x)
+	if err != nil {
+		panic(err)
+	}
+	x.GenerateTranslators()
+	return string(x.ToGoCodeFor(goName))
+}
+
+func ExtractGoToCapnCode(src string, goName string) string {
+
+	x := NewExtractor()
+	_, err := ExtractStructs("", "package main; "+src, x)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(x.ToCapnCodeFor(goName))
 }
 
 // ExtractStructs pulls out the struct definitions from a golang source file.
@@ -449,11 +524,12 @@ func GoType2CapnType(gotypeName string) string {
 	return UppercaseCapnpTypeName(gotypeName) + "Capn"
 }
 
-func (x *Extractor) StartStruct(name string) error {
+func (x *Extractor) StartStruct(goName string) error {
 	x.fieldCount = 0
 
-	capname := GoType2CapnType(name)
-	x.goType2capType[name] = capname
+	capname := GoType2CapnType(goName)
+	x.goType2capType[goName] = capname
+	x.capType2goType[capname] = goName
 
 	// check for rename comment, capname:"newCapName"
 	if x.heldComment != "" {
@@ -467,17 +543,17 @@ func (x *Extractor) StartStruct(name string) error {
 	}
 
 	if isCapnpKeyword(capname) {
-		err := fmt.Errorf(`after uppercasing the first letter, struct '%s' becomes '%s' but this is a reserved capnp word, so please write a comment annotation just before the struct definition in go (e.g. // capname:"capName") to rename it.`, name, capname)
+		err := fmt.Errorf(`after uppercasing the first letter, struct '%s' becomes '%s' but this is a reserved capnp word, so please write a comment annotation just before the struct definition in go (e.g. // capname:"capName") to rename it.`, goName, capname)
 		panic(err)
 		return err
 	}
 
 	fmt.Fprintf(&x.out, "struct %s { %s", capname, x.fieldSuffix)
 
-	x.curStruct = NewStruct(capname)
+	x.curStruct = NewStruct(capname, goName)
 	x.curStruct.comment = x.heldComment
 	x.heldComment = ""
-	x.srs = append(x.srs, x.curStruct)
+	x.srs[goName] = x.curStruct
 
 	return nil
 }

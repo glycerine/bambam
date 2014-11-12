@@ -64,6 +64,13 @@ func ShouldMatchModuloSpaces(actual interface{}, expected ...interface{}) string
 	return ShouldMatchModulo(map[rune]bool{' ': true}, actual, expected[0])
 }
 
+func ShouldMatchModuloWhiteSpace(actual interface{}, expected ...interface{}) string {
+	if fail := need(1, expected); fail != success {
+		return fail
+	}
+	return ShouldMatchModulo(map[rune]bool{' ': true, '\n': true, '\t': true}, actual, expected[0])
+}
+
 func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) bool {
 	r := []rune(a)
 	s := []rune(b)
