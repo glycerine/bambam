@@ -42,12 +42,33 @@ func main() {
 	by := x.GenCapnpHeader()
 	os.Stdout.Write(by.Bytes())
 
-	_, err := x.WriteTo(os.Stdout)
+	schemaFile, err := os.Create("schema.capnp")
 	if err != nil {
 		panic(err)
 	}
+	defer schemaFile.Close()
+
+	_, err = x.WriteToSchema(schemaFile)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Printf("\n")
 	fmt.Printf("##compile with:\n\n##   capnp compile -ogo yourfile.capnp\n\n")
+
+	// translator library of go functions is separate from the schema
+
+	translatorFile, err := os.Create("translateCapn.go")
+	if err != nil {
+		panic(err)
+	}
+	defer translatorFile.Close()
+
+	_, err = x.WriteToTranslators(translatorFile)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 type Field struct {
@@ -191,7 +212,7 @@ func %sToGo(src *%s, dest *%s) *%s {
   if dest = nil { 
     dest = &%s{} 
   }
-  %s
+%s
   return dest
 } 
 `, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
@@ -201,7 +222,7 @@ func %sGoToCapn(seg *capn.Segment, src *%s, dest *%s) *%s {
   if dest = nil {
       dest := testpkg.New%s(seg)
   }
-  %s
+%s
   return dest
 } 
 `, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
@@ -224,9 +245,9 @@ func (x *Extractor) SettersToGo(goName string) string {
 		case "int":
 			fallthrough
 		case "int64":
-			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
 		case "string":
-			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+			fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
 		}
 	}
 	return string(buf.Bytes())
@@ -247,9 +268,9 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		case "int":
 			fallthrough
 		case "int64":
-			fmt.Fprintf(&buf, "dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
+			fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
 		case "string":
-			fmt.Fprintf(&buf, "dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
+			fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
 		}
 	}
 	return string(buf.Bytes())
@@ -299,12 +320,10 @@ func (s ByGoName) Less(i, j int) bool {
 	return s[i].goName < s[j].goName
 }
 
-func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
+func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 
 	var m int
 	var spaces string
-
-	x.GenerateTranslators()
 
 	// sort structs alphabetically to get a stable (testable) ordering.
 	sortedStructs := ByGoName(make([]*Struct, 0, len(x.srs)))
@@ -358,6 +377,22 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 
 	} // end loop over structs
 
+	return
+}
+
+func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
+
+	var m int
+
+	x.GenerateTranslators()
+
+	// sort structs alphabetically to get a stable (testable) ordering.
+	sortedStructs := ByGoName(make([]*Struct, 0, len(x.srs)))
+	for _, strct := range x.srs {
+		sortedStructs = append(sortedStructs, strct)
+	}
+	sort.Sort(ByGoName(sortedStructs))
+
 	// now print the translating methods, in a second pass over structures, to accomodate
 	// our test structure
 	for _, s := range sortedStructs {
@@ -405,7 +440,11 @@ func ExtractString2String(src string) string {
 
 	// final write, this time accounting for capid tag ordering
 	var buf bytes.Buffer
-	_, err = x.WriteTo(&buf)
+	_, err = x.WriteToSchema(&buf)
+	if err != nil {
+		panic(err)
+	}
+	_, err = x.WriteToTranslators(&buf)
 	if err != nil {
 		panic(err)
 	}
