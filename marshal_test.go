@@ -15,7 +15,7 @@ func TestCapnpStructNaming(t *testing.T) {
 type Extra struct {
   A int
 }`
-			cv.So(ExtractString2String(ex0), ShouldMatchModuloSpaces, `struct ExtraCapn { a @0: Int64; } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct ExtraCapn { a @0: Int64; } `)
 		})
 	})
 }

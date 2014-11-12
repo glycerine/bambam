@@ -356,7 +356,11 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 			return
 		}
 
-		// now print the translating methods
+	} // end loop over structs
+
+	// now print the translating methods, in a second pass over structures, to accomodate
+	// our test structure
+	for _, s := range sortedStructs {
 
 		m, err = fmt.Fprintf(w, "\n\n")
 		n += int64(m)
@@ -382,7 +386,7 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 			return
 		}
 
-	} // end loop over structs
+	} // end second loop over structs for translating methods.
 
 	return
 }

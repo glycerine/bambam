@@ -20,7 +20,7 @@ type In1 struct {
 			expect1 := `struct In1Capn { str @0: Text; n @1: Int64; d @2: Float64; } `
 			// List(Float64) next
 
-			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
+			cv.So(ExtractString2String(in1), ShouldStartWithModuloWhiteSpace, expect1)
 		})
 	})
 }
@@ -39,7 +39,7 @@ type in1 struct {
 			expect1 := `struct In1Capn { str @0: Text; n @1: Int64; d @2: Float64;}`
 			// List(Float64) next
 
-			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
+			cv.So(ExtractString2String(in1), ShouldStartWithModuloWhiteSpace, expect1)
 		})
 	})
 }
@@ -57,7 +57,7 @@ type SyncMsg int32
 `
 			expect1 := `struct SCapn { a @0: SyncMsg; } `
 
-			cv.So(ExtractString2String(in1), ShouldMatchModuloSpaces, expect1)
+			cv.So(ExtractString2String(in1), ShouldStartWithModuloWhiteSpace, expect1)
 		})
 	})
 }

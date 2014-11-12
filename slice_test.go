@@ -15,7 +15,7 @@ func TestSliceToList(t *testing.T) {
 type s1 struct {
   MyInts []int
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct S1Capn { myInts  @0:   List(Int64); } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myInts  @0:   List(Int64); } `)
 
 		})
 	})
@@ -31,7 +31,7 @@ type bbb struct {}
 type s1 struct {
   MyBees []bbb
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct BbbCapn { } struct S1Capn { myBees  @0:   List(BbbCapn); } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct BbbCapn { } struct S1Capn { myBees  @0:   List(BbbCapn); } `)
 
 		})
 	})
@@ -47,7 +47,7 @@ type big struct {}
 type s1 struct {
   MyBigs []*big
 }`
-			cv.So(ExtractString2String(ex0), cv.ShouldEqual, `struct BigCapn { } struct S1Capn { myBigs  @0:   List(BigCapn); } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct BigCapn { } struct S1Capn { myBigs  @0:   List(BigCapn); } `)
 
 		})
 	})
@@ -62,7 +62,7 @@ func TestSliceOfByteBecomesData(t *testing.T) {
 type s1 struct {
   MyData []byte
 }`
-			cv.So(ExtractString2String(ex0), ShouldMatchModuloSpaces, `struct S1Capn { myData  @0:   Data; } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myData  @0:   Data; } `)
 
 		})
 	})
