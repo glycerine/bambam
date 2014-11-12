@@ -192,7 +192,8 @@ func %sToGo(src *%s, dest *%s) *%s {
     dest = &%s{} 
   }
   %s
-  return dest } 
+  return dest
+} 
 `, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
@@ -201,7 +202,8 @@ func %sGoToCapn(seg *capn.Segment, src *%s, dest *%s) *%s {
       dest := testpkg.New%s(seg)
   }
   %s
-  return dest } 
+  return dest
+} 
 `, s.goName, s.goName, s.capName, s.capName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
@@ -213,12 +215,17 @@ func (x *Extractor) SettersToGo(goName string) string {
 	if myStruct == nil {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
-	fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
-	for i, f := range myStruct.fld {
-		fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
+	//fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
+	//for i, f := range myStruct.fld {
+	//fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
+	for _, f := range myStruct.fld {
 
 		switch f.goType {
 		case "int":
+			fallthrough
+		case "int64":
+			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
+		case "string":
 			fmt.Fprintf(&buf, "dest.%s = src.%s()\n", f.goName, UppercaseCapnpTypeName(f.capname))
 		}
 	}
@@ -231,12 +238,17 @@ func (x *Extractor) SettersToCapn(goName string) string {
 	if myStruct == nil {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
-	fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", myStruct)
-	for i, f := range myStruct.fld {
-		fmt.Printf("\n\n SettersToCapn running on myStruct.fld[%d] = %#v\n", i, f)
+	//fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", myStruct)
+	//for i, f := range myStruct.fld {
+	for _, f := range myStruct.fld {
+		//fmt.Printf("\n\n SettersToCapn running on myStruct.fld[%d] = %#v\n", i, f)
 
 		switch f.goType {
 		case "int":
+			fallthrough
+		case "int64":
+			fmt.Fprintf(&buf, "dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
+		case "string":
 			fmt.Fprintf(&buf, "dest.Set%s(src.%s)\n", UppercaseCapnpTypeName(f.capname), f.goName)
 		}
 	}
@@ -275,15 +287,15 @@ func (s ByOrderOfAppearance) Less(i, j int) bool {
 	return s[i].orderOfAppearance < s[j].orderOfAppearance
 }
 
-type ByName []*Struct
+type ByGoName []*Struct
 
-func (s ByName) Len() int {
+func (s ByGoName) Len() int {
 	return len(s)
 }
-func (s ByName) Swap(i, j int) {
+func (s ByGoName) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s ByName) Less(i, j int) bool {
+func (s ByGoName) Less(i, j int) bool {
 	return s[i].goName < s[j].goName
 }
 
@@ -292,14 +304,16 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 	var m int
 	var spaces string
 
-	// sort structs alphabetically to get a stable (testable) ordering.
-	sortme := ByName(make([]*Struct, 0, len(x.srs)))
-	for _, strct := range x.srs {
-		sortme = append(sortme, strct)
-	}
-	sort.Sort(ByName(sortme))
+	x.GenerateTranslators()
 
-	for _, s := range sortme {
+	// sort structs alphabetically to get a stable (testable) ordering.
+	sortedStructs := ByGoName(make([]*Struct, 0, len(x.srs)))
+	for _, strct := range x.srs {
+		sortedStructs = append(sortedStructs, strct)
+	}
+	sort.Sort(ByGoName(sortedStructs))
+
+	for _, s := range sortedStructs {
 
 		m, err = fmt.Fprintf(w, "%sstruct %s { %s", x.fieldSuffix, s.capName, x.fieldSuffix)
 		n += int64(m)
@@ -334,7 +348,7 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 				}
 
 			}
-		}
+		} // end field loop
 
 		m, err = fmt.Fprintf(w, "} %s", x.fieldSuffix)
 		n += int64(m)
@@ -342,7 +356,33 @@ func (x *Extractor) WriteTo(w io.Writer) (n int64, err error) {
 			return
 		}
 
-	}
+		// now print the translating methods
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(x.ToGoCodeFor(s.goName))
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(x.ToCapnCodeFor(s.goName))
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+	} // end loop over structs
 
 	return
 }

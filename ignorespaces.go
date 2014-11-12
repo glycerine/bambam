@@ -71,6 +71,44 @@ func ShouldMatchModuloWhiteSpace(actual interface{}, expected ...interface{}) st
 	return ShouldMatchModulo(map[rune]bool{' ': true, '\n': true, '\t': true}, actual, expected[0])
 }
 
+func ShouldStartWithModuloWhiteSpace(actual interface{}, expectedPrefix ...interface{}) string {
+	if fail := need(1, expectedPrefix); fail != success {
+		return fail
+	}
+
+	ignoring := map[rune]bool{' ': true, '\n': true, '\t': true}
+
+	value, valueIsString := actual.(string)
+	expecPrefix, expecIsString := expectedPrefix[0].(string)
+
+	if !valueIsString || !expecIsString {
+		return fmt.Sprintf(shouldBothBeStrings, reflect.TypeOf(actual), reflect.TypeOf(expectedPrefix[0]))
+	}
+
+	if hasPrefixEqualIgnoring(value, expecPrefix, ignoring) {
+		return success
+	} else {
+		ignored := "{"
+		switch len(ignoring) {
+		case 0:
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, "nothing")
+		case 1:
+			for k := range ignoring {
+				ignored = ignored + fmt.Sprintf("'%c'", k)
+			}
+			ignored = ignored + "}"
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored)
+
+		default:
+			for k := range ignoring {
+				ignored = ignored + fmt.Sprintf("'%c', ", k)
+			}
+			ignored = ignored + "}"
+			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored)
+		}
+	}
+}
+
 func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) bool {
 	r := []rune(a)
 	s := []rune(b)
@@ -102,6 +140,52 @@ func stringsEqualIgnoring(a, b string, ignoring map[rune]bool) bool {
 
 		if nextr >= len(r) {
 			return false
+		}
+		if nexts >= len(s) {
+			return false
+		}
+
+		if r[nextr] != s[nexts] {
+			return false
+		}
+		nextr++
+		nexts++
+	}
+
+	return false
+}
+
+func hasPrefixEqualIgnoring(str, prefix string, ignoring map[rune]bool) bool {
+	s := []rune(str)
+	r := []rune(prefix)
+
+	nextr := 0
+	nexts := 0
+
+	for {
+		// skip past spaces in both r and s
+		for nextr < len(r) {
+			if ignoring[r[nextr]] {
+				nextr++
+			} else {
+				break
+			}
+		}
+
+		for nexts < len(s) {
+			if ignoring[s[nexts]] {
+				nexts++
+			} else {
+				break
+			}
+		}
+
+		if nextr >= len(r) && nexts >= len(s) {
+			return true
+		}
+
+		if nextr >= len(r) {
+			return true // for prefix testing
 		}
 		if nexts >= len(s) {
 			return false
