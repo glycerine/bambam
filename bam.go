@@ -302,7 +302,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 
 			default:
 				// handle list of struct
-				fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
+				//fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
 				fmt.Fprintf(&buf, `
   // %s -> %s (go slice to capn list)
   if len(src.%s) > 0 {
@@ -936,7 +936,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	x.curStruct.fld = append(x.curStruct.fld, curField)
 	x.fieldCount++
 
-	fmt.Printf("\n\n curField = %#v\n", curField)
+	//fmt.Printf("\n\n curField = %#v\n", curField)
 
 	return nil
 }
