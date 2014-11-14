@@ -5,7 +5,7 @@ Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to a
 
 Not anymore.
 
-Given a golang source file, bambam will generate a capnproto schema. Even better: bambam will also generate translation functions to readily convert between golang structs and capnproto structs.
+Given a golang source file, bambam will generate a [capnproto](http://kentonv.github.io/capnproto/) schema. Even better: bambam will also generate translation functions to readily convert between golang structs and capnproto structs.
 
 use
 ---
