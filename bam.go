@@ -304,7 +304,7 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
         %sToGo(src.%s().At(i), &dest.%s[i])
     }
 
-`, f.goName, f.GoCapGoName, f.goName, f.goType, f.capType, f.goName, f.goType)
+`, f.goName, f.GoCapGoName, f.goName, f.goType, f.capType, f.goName, f.goName)
 
 }
 
