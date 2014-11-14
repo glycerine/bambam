@@ -23,6 +23,7 @@ type s1 struct {
     if dest == nil { 
       dest = &s1{} 
     }
+
     dest.Names = src.Names().ToArray()
   
     return dest
@@ -47,35 +48,3 @@ type s1 struct {
 		})
 	})
 }
-
-/*
-
-			expected1 :=
-`	if len(js.RunQ) > 0 {
-		//fmt.Printf("len of Runq: %d, %#v\n", len(js.RunQ), js.RunQ)
-		runq := schema.NewZjobList(seg, len(js.RunQ))
-		plistRunq := capn.PointerList(runq)
-		i = 0
-		for _, j = range js.RunQ {
-			zjob := JobToCapnpSegment(j, seg)
-			plistRunq.Set(i, capn.Object(zjob))
-			i++
-		}
-		zjs.SetRunq(runq)
-	}
-
-	// waitingjobs
-	if len(js.WaitingJobs) > 0 {
-		//fmt.Printf("len of WaitingJobs: %d, %#v\n", len(js.WaitingJobs), js.WaitingJobs)
-		waitingjobs := schema.NewZjobList(seg, len(js.WaitingJobs))
-		plistWaitingjobs := capn.PointerList(waitingjobs)
-		i = 0
-		for _, j = range js.WaitingJobs {
-			zjob := JobToCapnpSegment(j, seg)
-			plistWaitingjobs.Set(i, capn.Object(zjob))
-			i++
-		}
-		zjs.SetWaitingjobs(waitingjobs)
-	}
-`
-*/

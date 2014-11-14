@@ -47,7 +47,7 @@ type in1 struct {
 func TestNonStructTypeDefsAreIgnored(t *testing.T) {
 
 	cv.Convey("Given a go type definition 'type SyncMsg int32' that isn't a struct definition,", t, func() {
-		cv.Convey("then bambam should not define a new SyncMsgCapn for it, nor should we refer to a new SyncMsgCapn type inside generate structs", func() {
+		cv.Convey("then bambam should not define a new SyncMsgCapn for it, but should generate a capnp Int32 field in the capnp struct", func() {
 
 			in1 := `
 type S struct {
@@ -55,7 +55,7 @@ type S struct {
 }
 type SyncMsg int32
 `
-			expect1 := `struct SCapn { a @0: SyncMsg; } `
+			expect1 := `struct SCapn { a @0: Int32; } `
 
 			cv.So(ExtractString2String(in1), ShouldStartWithModuloWhiteSpace, expect1)
 		})

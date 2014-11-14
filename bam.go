@@ -260,10 +260,15 @@ func (x *Extractor) SettersToGo(goName string) string {
 	//fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
 	//for i, f := range myStruct.fld {
 	//fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
+	i := 0
+	firstList := true
 	for _, f := range myStruct.fld {
 
 		if f.isList {
-			fmt.Fprintf(&buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
+			x.SettersToGoListHelper(&buf, myStruct, f, firstList)
+			if firstList {
+				firstList = false
+			}
 		} else {
 			switch f.goType {
 			case "int":
@@ -276,8 +281,31 @@ func (x *Extractor) SettersToGo(goName string) string {
 				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.GoCapGoName)
 			}
 		}
+		i++
 	}
 	return string(buf.Bytes())
+}
+
+func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field, firstList bool) {
+
+	// special case Text / string slices
+	if f.capType == "Text" {
+		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
+		return
+	}
+	if firstList {
+		fmt.Fprintf(buf, "\n    var n int\n")
+	}
+	fmt.Fprintf(buf, `
+    // %s
+	n = src.%s().Len()
+	dest.%s = make([]%s, n)
+	for i := 0; i < n; i++ {
+        %sToGo(src.%s().At(i), &dest.%s[i])
+    }
+
+`, f.goName, f.GoCapGoName, f.goName, f.goType, f.capType, f.goName, f.goType)
+
 }
 
 func (x *Extractor) SettersToCapn(goName string) string {
@@ -718,7 +746,9 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	// we just want to preserve the mapping, without adding Capn suffix
 	fmt.Printf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
-	x.goType2capType[goNewTypeName] = goNewTypeName
+	//x.goType2capType[goNewTypeName] = goNewTypeName
+	isList := false
+	x.goType2capType[goNewTypeName] = x.GoTypeToCapnpType(goTargetTypeName, &isList)
 }
 
 var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
@@ -951,10 +981,11 @@ func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (cap
 			x.goType2capType[goFieldTypeName] = capnTypeDisplayed
 		}
 
-		if isCapnpKeyword(capnTypeDisplayed) {
-			err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, goFieldTypeName, capnTypeDisplayed)
-			panic(err)
-		}
+		/*		if isCapnpKeyword(capnTypeDisplayed) {
+					err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, goFieldTypeName, capnTypeDisplayed)
+					panic(err)
+				}
+		*/
 	}
 	return
 }
