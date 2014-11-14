@@ -12,6 +12,10 @@ use
 
 `$ bambam <sourcefile.go>`
 
+prereqs
+-------
+
+[Capnproto](http://kentonv.github.io/capnproto/) and [go-capnproto](https://github.com/glycerine/go-capnproto) should both be installed and on your PATH.
 
 
 Copyright (c) 2014, Jason E. Aten, Ph.D.
