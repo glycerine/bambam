@@ -109,7 +109,7 @@ func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 	n = src.MyBigs().Len()
 	dest.MyBigs = make([]Big, n)
 	for i := 0; i < n; i++ {
-        dest.MyBigs[i] = BigCapnToGo(src.MyBigs().At(i), nil)
+        dest.MyBigs[i] = *BigCapnToGo(src.MyBigs().At(i), nil)
     }
 
 `

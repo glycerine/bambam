@@ -107,7 +107,11 @@ func ShouldStartWithModuloWhiteSpace(actual interface{}, expectedPrefix ...inter
 		if n > diffMax {
 			n = diffMax
 		}
-		diffpoint = string(vrune[vpos-1 : (vpos - 1 + n)])
+		beg := vpos - 1
+		if beg < 0 {
+			beg = 0
+		}
+		diffpoint = string(vrune[beg:(vpos - 1 + n)])
 
 		ignored := "{"
 		switch len(ignoring) {

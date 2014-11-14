@@ -15,8 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-
-	"github.com/shurcooL/go-goon"
 )
 
 func ParseCmdLine() string {
@@ -291,7 +289,7 @@ func (x *Extractor) SettersToGo(goName string) string {
 
 func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field, firstList bool) {
 
-	fmt.Printf("debug: field f = %#v\n", f)
+	//fmt.Printf("debug: field f = %#v\n", f)
 
 	// special case Text / string slices
 	if f.capType == "Text" {
@@ -301,16 +299,33 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 	if firstList {
 		fmt.Fprintf(buf, "\n    var n int\n")
 	}
+	// add a dereference (*) in from of the ToGo() invocation for go types that aren't pointers.
+	addStar := "*"
+	if isPointerType(f.goTypePrefix) {
+		addStar = ""
+	}
+
 	fmt.Fprintf(buf, `
     // %s
 	n = src.%s().Len()
 	dest.%s = make(%s%s, n)
 	for i := 0; i < n; i++ {
-        dest.%s[i] = %sToGo(src.%s().At(i), nil)
+        dest.%s[i] = %s%sToGo(src.%s().At(i), nil)
     }
 
-`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, f.capType, f.goName)
+`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, addStar, f.capType, f.goName)
 
+}
+
+func isPointerType(goTypePrefix string) bool {
+	if len(goTypePrefix) == 0 {
+		return false
+	}
+	prefix := []rune(goTypePrefix)
+	if prefix[len(prefix)-1] == '*' {
+		return true
+	}
+	return false
 }
 
 func (x *Extractor) SettersToCapn(goName string) string {
@@ -346,6 +361,11 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			default:
 				// handle list of struct
 				//fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
+				addAmpersand := "&"
+				if isPointerType(f.goTypePrefix) {
+					addAmpersand = ""
+				}
+
 				fmt.Fprintf(&buf, `
   // %s -> %s (go slice to capn list)
   if len(src.%s) > 0 {
@@ -353,12 +373,12 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		plist := capn.PointerList(typedList)
 		i := 0
 		for _, ele := range src.%s {
-			plist.Set(i, capn.Object(%sGoToCapn(seg, ele)))
+			plist.Set(i, capn.Object(%sGoToCapn(seg, %sele)))
 			i++
 		}
 		dest.Set%s(typedList)
 	}
-`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, f.GoCapGoName)
+`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, addAmpersand, f.GoCapGoName)
 
 			} // end switch f.goType
 
@@ -680,11 +700,11 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 														// named field
 														fld2 := ident.Obj.Decl.(*ast.Field)
 
-														fmt.Printf("\n\n    fld2 = %#v\n", fld2)
-														goon.Dump(fld2)
+														//fmt.Printf("\n\n    fld2 = %#v\n", fld2)
+														//goon.Dump(fld2)
 
 														typeNamePrefix, ident4 := GetTypeAsString(fld2.Type, "")
-														fmt.Printf("\n\n tnas = %#v, ident4 = %s\n", typeNamePrefix, ident4)
+														//fmt.Printf("\n\n tnas = %#v, ident4 = %s\n", typeNamePrefix, ident4)
 
 														err = x.GenerateStructField(ident.Name, typeNamePrefix, ident4, fld2, IsSlice(typeNamePrefix), fld2.Tag, NotEmbedded)
 														if err != nil {
@@ -765,7 +785,7 @@ func IsSlice(tnas string) bool {
 
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	// we just want to preserve the mapping, without adding Capn suffix
-	fmt.Printf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
+	//fmt.Printf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
 	//x.goType2capType[goNewTypeName] = goNewTypeName
 	isList := false
 	x.goType2capType[goNewTypeName] = x.GoTypeToCapnpType(goTargetTypeName, &isList)
