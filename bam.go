@@ -717,6 +717,7 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	// we just want to preserve the mapping, without adding Capn suffix
+	fmt.Printf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
 	x.goType2capType[goNewTypeName] = goNewTypeName
 }
 
@@ -798,13 +799,13 @@ const NotList = false
 const NotEmbedded = false
 const YesEmbedded = true
 
-func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
 
-	//fmt.Printf("\n\n\n GenerateStructField called with name = '%s', typeName = '%s', fld = %#v, tag = %#v\n\n", name, typeName, fld, tag)
+	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', fld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, fld, tag)
 
 	// if we are ignoring private (lowercase first letter) fields, then stop here.
 	if !IsEmbedded {
-		if len(name) > 0 && unicode.IsLower([]rune(name)[0]) && !x.extractPrivate {
+		if len(goFieldName) > 0 && unicode.IsLower([]rune(goFieldName)[0]) && !x.extractPrivate {
 			return nil
 		}
 	}
@@ -812,7 +813,7 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded}
 
 	var tagValue string
-	loweredName := underToCamelCase(LowercaseCapnpFieldName(name))
+	loweredName := underToCamelCase(LowercaseCapnpFieldName(goFieldName))
 
 	if tag != nil {
 		//fmt.Printf("tag = %#v\n", tag)
@@ -823,12 +824,12 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 			match := regexCapname.FindStringSubmatch(tag.Value)
 			if match != nil {
 				if len(match) == 2 {
-					//fmt.Printf("matched, using '%s' instead of '%s'\n", match[1], name)
+					//fmt.Printf("matched, using '%s' instead of '%s'\n", match[1], goFieldName)
 					loweredName = match[1]
 					tagValue = tag.Value
 
 					if isCapnpKeyword(loweredName) {
-						err := fmt.Errorf(`problem detected after applying the capname tag '%s' found on field '%s': '%s' is a reserved capnp word, so please use a *different* struct field tag (e.g. capname:"capnpName") to rename it`, tag.Value, name, loweredName)
+						err := fmt.Errorf(`problem detected after applying the capname tag '%s' found on field '%s': '%s' is a reserved capnp word, so please use a *different* struct field tag (e.g. capname:"capnpName") to rename it`, tag.Value, goFieldName, loweredName)
 						return err
 					}
 
@@ -842,13 +843,13 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 					//fmt.Printf("matched, applying capid tag '%s' for field '%s'\n", match2[1], loweredName)
 					n, err := strconv.Atoi(match2[1])
 					if err != nil {
-						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': could not convert to number, error: '%s'`, match2[1], name, x.curStruct.goName, err)
+						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': could not convert to number, error: '%s'`, match2[1], goFieldName, x.curStruct.goName, err)
 						panic(err)
 						return err
 					}
 					fld, already := x.curStruct.capIdMap[n]
 					if already {
-						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': number '%d' is already taken by field '%s'`, match2[1], name, x.curStruct.goName, n, fld.goName)
+						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': number '%d' is already taken by field '%s'`, match2[1], goFieldName, x.curStruct.goName, n, fld.goName)
 						panic(err)
 						return err
 
@@ -862,74 +863,21 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 	}
 
-	//fmt.Printf("\n\n\n GenerateStructField: name:'%s' -> loweredName:'%s'\n\n", name, loweredName)
+	//fmt.Printf("\n\n\n GenerateStructField: goFieldName:'%s' -> loweredName:'%s'\n\n", goFieldName, loweredName)
 
 	if isCapnpKeyword(loweredName) {
-		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, name, loweredName)
+		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, goFieldName, loweredName)
 		return err
 	}
 
-	var typeDisplayed string
+	capnTypeDisplayed := x.GoTypeToCapnpType(goFieldTypeName, &isList)
 
-	switch typeName {
-	case "string":
-		typeDisplayed = "Text"
-	case "int":
-		typeDisplayed = "Int64"
-	case "bool":
-		typeDisplayed = "Bool"
-	case "int8":
-		typeDisplayed = "Int8"
-	case "int16":
-		typeDisplayed = "Int16"
-	case "int32":
-		typeDisplayed = "Int32"
-	case "int64":
-		typeDisplayed = "Int64"
-	case "uint8":
-		typeDisplayed = "UInt8"
-	case "uint16":
-		typeDisplayed = "UInt16"
-	case "uint32":
-		typeDisplayed = "UInt32"
-	case "uint64":
-		typeDisplayed = "UInt64"
-	case "float32":
-		typeDisplayed = "Float32"
-	case "float64":
-		typeDisplayed = "Float64"
-	case "byte":
-		if isList {
-			typeDisplayed = "Data"
-			isList = false
-		} else {
-			typeDisplayed = "Uint8"
-		}
-	default:
-
-		alreadyKnownCapnType := x.goType2capType[typeName]
-		if alreadyKnownCapnType != "" {
-			//fmt.Printf("\n\n debug: x.goType2capType[typeName='%s'] -> '%s'\n", typeName, alreadyKnownCapnType)
-			typeDisplayed = alreadyKnownCapnType
-		} else {
-			typeDisplayed = GoType2CapnType(typeName)
-			//fmt.Printf("\n\n debug: adding to  x.goType2capType[typeName='%s'] = '%s'\n", typeName, typeDisplayed)
-			x.goType2capType[typeName] = typeDisplayed
-		}
-
-		if isCapnpKeyword(typeDisplayed) {
-			err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, typeName, typeDisplayed)
-			panic(err)
-			return err
-		}
-	}
-
-	//fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
+	//fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
 
 	if isList {
-		fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
+		fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
 	} else {
-		fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, typeDisplayed, x.fieldSuffix)
+		fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
 	}
 
 	sz := len(loweredName)
@@ -941,9 +889,9 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 
 	curField.GoCapGoName = UppercaseFirstLetter(loweredName)
 
-	curField.capType = typeDisplayed
-	curField.goName = name
-	curField.goType = typeName
+	curField.capType = capnTypeDisplayed
+	curField.goName = goFieldName
+	curField.goType = goFieldTypeName
 	curField.isList = isList
 	curField.tagValue = tagValue
 
@@ -955,9 +903,64 @@ func (x *Extractor) GenerateStructField(name string, typeName string, fld *ast.F
 	return nil
 }
 
+func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (capnTypeDisplayed string) {
+
+	switch goFieldTypeName {
+	case "string":
+		capnTypeDisplayed = "Text"
+	case "int":
+		capnTypeDisplayed = "Int64"
+	case "bool":
+		capnTypeDisplayed = "Bool"
+	case "int8":
+		capnTypeDisplayed = "Int8"
+	case "int16":
+		capnTypeDisplayed = "Int16"
+	case "int32":
+		capnTypeDisplayed = "Int32"
+	case "int64":
+		capnTypeDisplayed = "Int64"
+	case "uint8":
+		capnTypeDisplayed = "UInt8"
+	case "uint16":
+		capnTypeDisplayed = "UInt16"
+	case "uint32":
+		capnTypeDisplayed = "UInt32"
+	case "uint64":
+		capnTypeDisplayed = "UInt64"
+	case "float32":
+		capnTypeDisplayed = "Float32"
+	case "float64":
+		capnTypeDisplayed = "Float64"
+	case "byte":
+		if *isList {
+			capnTypeDisplayed = "Data"
+			*isList = false
+		} else {
+			capnTypeDisplayed = "Uint8"
+		}
+	default:
+
+		alreadyKnownCapnType := x.goType2capType[goFieldTypeName]
+		if alreadyKnownCapnType != "" {
+			//fmt.Printf("\n\n debug: x.goType2capType[goFieldTypeName='%s'] -> '%s'\n", goFieldTypeName, alreadyKnownCapnType)
+			capnTypeDisplayed = alreadyKnownCapnType
+		} else {
+			capnTypeDisplayed = GoType2CapnType(goFieldTypeName)
+			//fmt.Printf("\n\n debug: adding to  x.goType2capType[goFieldTypeName='%s'] = '%s'\n", goFieldTypeName, capnTypeDisplayed)
+			x.goType2capType[goFieldTypeName] = capnTypeDisplayed
+		}
+
+		if isCapnpKeyword(capnTypeDisplayed) {
+			err := fmt.Errorf(`after uppercasing the first letter, type '%s' becomes '%s' but this is a reserved capnp word, so please use a different type name`, goFieldTypeName, capnTypeDisplayed)
+			panic(err)
+		}
+	}
+	return
+}
+
 func (x *Extractor) GenerateEmbedded(typeName string) {
 	fmt.Fprintf(&x.out, "%s; ", typeName) // prod
-
 }
 
 func getNewCapnpId() string {
