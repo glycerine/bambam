@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/shurcooL/go-goon"
 )
 
 func ParseCmdLine() string {
@@ -90,6 +92,7 @@ type Field struct {
 	capType           string
 	goName            string
 	goType            string
+	goTypePrefix      string
 	tagValue          string
 	isList            bool
 	capIdFromTag      int
@@ -288,6 +291,8 @@ func (x *Extractor) SettersToGo(goName string) string {
 
 func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field, firstList bool) {
 
+	fmt.Printf("debug: field f = %#v\n", f)
+
 	// special case Text / string slices
 	if f.capType == "Text" {
 		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
@@ -299,12 +304,12 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 	fmt.Fprintf(buf, `
     // %s
 	n = src.%s().Len()
-	dest.%s = make([]%s, n)
+	dest.%s = make(%s%s, n)
 	for i := 0; i < n; i++ {
-        %sToGo(src.%s().At(i), &dest.%s[i])
+        dest.%s[i] = %sToGo(src.%s().At(i), nil)
     }
 
-`, f.goName, f.GoCapGoName, f.goName, f.goType, f.capType, f.goName, f.goName)
+`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, f.capType, f.goName)
 
 }
 
@@ -348,7 +353,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		plist := capn.PointerList(typedList)
 		i := 0
 		for _, ele := range src.%s {
-			plist.Set(i, capn.Object(%sGoToCapn(seg, &ele)))
+			plist.Set(i, capn.Object(%sGoToCapn(seg, ele)))
 			i++
 		}
 		dest.Set%s(typedList)
@@ -661,7 +666,7 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 												// field without name: embedded/anonymous struct
 												typeName := fld.Type.(*ast.Ident).Name
 
-												err = x.GenerateStructField(typeName, typeName, fld, NotList, fld.Tag, YesEmbedded)
+												err = x.GenerateStructField(typeName, "", typeName, fld, NotList, fld.Tag, YesEmbedded)
 												if err != nil {
 													return []byte{}, err
 												}
@@ -675,41 +680,52 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 														// named field
 														fld2 := ident.Obj.Decl.(*ast.Field)
 
-														//fmt.Printf("\n\n    fld2 = %#v\n", fld2)
-														//goon.Dump(fld2)
+														fmt.Printf("\n\n    fld2 = %#v\n", fld2)
+														goon.Dump(fld2)
 
-														switch fld2.Type.(type) {
+														typeNamePrefix, ident4 := GetTypeAsString(fld2.Type, "")
+														fmt.Printf("\n\n tnas = %#v, ident4 = %s\n", typeNamePrefix, ident4)
 
-														case (*ast.StarExpr):
-															star2 := fld2.Type.(*ast.StarExpr)
-															err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag, NotEmbedded)
-															if err != nil {
-																return []byte{}, err
-															}
-
-														case (*ast.Ident):
-															ident2 := fld2.Type.(*ast.Ident)
-															err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag, NotEmbedded)
-															if err != nil {
-																return []byte{}, err
-															}
-
-														case (*ast.ArrayType):
-															// slice or array
-															array2 := fld2.Type.(*ast.ArrayType)
-															switch array2.Elt.(type) {
-															case (*ast.Ident):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
-																if err != nil {
-																	return []byte{}, err
-																}
-															case (*ast.StarExpr):
-																err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
-																if err != nil {
-																	return []byte{}, err
-																}
-															}
+														err = x.GenerateStructField(ident.Name, typeNamePrefix, ident4, fld2, IsSlice(typeNamePrefix), fld2.Tag, NotEmbedded)
+														if err != nil {
+															return []byte{}, err
 														}
+
+														/*
+															switch fld2.Type.(type) {
+
+															case (*ast.StarExpr):
+																star2 := fld2.Type.(*ast.StarExpr)
+																err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag, NotEmbedded)
+																if err != nil {
+																	return []byte{}, err
+																}
+
+															case (*ast.Ident):
+																ident2 := fld2.Type.(*ast.Ident)
+																err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag, NotEmbedded)
+																if err != nil {
+																	return []byte{}, err
+																}
+
+															case (*ast.ArrayType):
+																// slice or array
+																array2 := fld2.Type.(*ast.ArrayType)
+																switch array2.Elt.(type) {
+																case (*ast.Ident):
+																	err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
+																	if err != nil {
+																		return []byte{}, err
+																	}
+																case (*ast.StarExpr):
+																	fmt.Printf("\n\n in array type is *ast.StarExpr\n")
+																	err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
+																	if err != nil {
+																		return []byte{}, err
+																	}
+																}
+															}
+														*/
 													}
 												}
 											}
@@ -741,6 +757,10 @@ func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error)
 	}
 
 	return x.out.Bytes(), err
+}
+
+func IsSlice(tnas string) bool {
+	return strings.HasPrefix(tnas, "[]")
 }
 
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
@@ -829,7 +849,7 @@ const NotList = false
 const NotEmbedded = false
 const YesEmbedded = true
 
-func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
 
 	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', fld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, fld, tag)
 
@@ -924,6 +944,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypeName stri
 	curField.goType = goFieldTypeName
 	curField.isList = isList
 	curField.tagValue = tagValue
+	curField.goTypePrefix = goFieldTypePrefix
 
 	x.curStruct.fld = append(x.curStruct.fld, curField)
 	x.fieldCount++
