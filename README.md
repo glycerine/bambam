@@ -17,6 +17,11 @@ prereqs
 
 [Capnproto](http://kentonv.github.io/capnproto/) and [go-capnproto](https://github.com/glycerine/go-capnproto) should both be installed and on your PATH.
 
+to install
+--------
+
+`go get -t github.com/glycerine/bambam`  # the -t pulls in the test dependencies.
+
 
 Copyright (c) 2014, Jason E. Aten, Ph.D.
 
