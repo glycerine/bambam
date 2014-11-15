@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"io"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -16,73 +15,6 @@ import (
 	"strings"
 	"unicode"
 )
-
-func ParseCmdLine() string {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "bambam needs exactly one golang source file to process.\n")
-		os.Exit(1)
-	}
-	fn := os.Args[1]
-	if !strings.HasSuffix(fn, ".go") && !strings.HasSuffix(fn, ".go.txt") {
-		fmt.Fprintf(os.Stderr, "error: bambam input file '%s' did not end in '.go'.\n", fn)
-		os.Exit(1)
-	}
-	return fn
-}
-
-func main() {
-	readMe := ParseCmdLine()
-
-	x := NewExtractor()
-	x.fieldPrefix = "   "
-	x.fieldSuffix = "\n"
-
-	ExtractStructs(readMe, nil, x)
-
-	schemaFN := x.compileDir.DirPath + "/schema.capnp"
-	schemaFile, err := os.Create(schemaFN)
-	if err != nil {
-		panic(err)
-	}
-	defer schemaFile.Close()
-
-	by := x.GenCapnpHeader()
-	schemaFile.Write(by.Bytes())
-
-	_, err = x.WriteToSchema(schemaFile)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Fprintf(schemaFile, "\n")
-	fmt.Fprintf(schemaFile, "##compile with:\n\n##\n##\n##   capnp compile -ogo %s\n\n", schemaFN)
-
-	// translator library of go functions is separate from the schema
-
-	translateFn := x.compileDir.DirPath + "/translateCapn.go"
-	translatorFile, err := os.Create(translateFn)
-	if err != nil {
-		panic(err)
-	}
-	defer translatorFile.Close()
-	fmt.Fprintf(translatorFile, `package %s
-import capn "github.com/glycerine/go-capnproto"
-`, x.pkgName)
-
-	_, err = x.WriteToTranslators(translatorFile)
-	if err != nil {
-		panic(err)
-	}
-
-	_, out, err := CapnpCompilePath(schemaFN)
-	if err != nil {
-		panic(fmt.Sprintf("err: '%s', out: '%s'", err, out))
-	}
-	fmt.Printf("generated files in '%s'\n", x.compileDir.DirPath)
-	//x.Cleanup()
-	exec.Command("cp", readMe, "./"+x.compileDir.DirPath+"/"+readMe+".go").Run()
-	exec.Command("go", "build", "./"+x.compileDir.DirPath).Run()
-}
 
 type Field struct {
 	capname           string
@@ -606,11 +538,15 @@ func ExtractGoToCapnCode(src string, goName string) string {
 // can be nil if fname is provided. See http://golang.org/pkg/go/parser/#ParseFile
 //
 func ExtractStructs(fname string, src interface{}, x *Extractor) ([]byte, error) {
-
 	if x == nil {
 		x = NewExtractor()
 		defer x.Cleanup()
 	}
+
+	return x.ExtractStructsFromOneFile(src, fname)
+}
+
+func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]byte, error) {
 
 	fset := token.NewFileSet() // positions are relative to fset
 
@@ -870,6 +806,10 @@ const NotEmbedded = false
 const YesEmbedded = true
 
 func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+
+	if goFieldTypeName == "" {
+		return nil
+	}
 
 	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', fld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, fld, tag)
 
