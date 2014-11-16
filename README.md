@@ -34,5 +34,46 @@ use: bambam -o outdir -p package myGoSourceFile.go myGoSourceFile2.go ...
      # [1] https://github.com/glycerine/go-capnproto 
 ~~~
 
+demo
+-----
+
+See rw.go.txt. Also: after running `go test`, cd into testdir_* and look at the sample project files there.
+
+Here is what use looks like. You end up with a Save() and Load() function for each of your structs. Simple!
+
+~~~
+package main
+
+import (
+    "bytes"
+)
+
+type MyStruct struct {
+	Hello    []string
+	World    []int
+}
+
+func main() {
+
+	rw := MyStruct{
+		Hello:    []string{"one", "two", "three"},
+		World:    []int{1, 2, 3},
+	}
+
+    // any io.ReadWriter will work here (os.File, etc)
+	var o bytes.Buffer
+
+	rw.Save(&o)
+    // now we have saved!
+
+
+    rw2 := &MyStruct{}
+	rw2.Load(&o)
+    // now we have restored!
+
+}
+
+~~~
+
 Copyright (c) 2014, Jason E. Aten, Ph.D.
 
