@@ -86,6 +86,27 @@ Also: some pointers work, but pointers in the inner-most struct do not. This is 
 
 Not planned (likely never supported): Go interfaces, Go channels.
 
+warning (anti-foot-shooting advice)
+--------
+Beginners should use bambam only to get started with Capnproto. You will loose the schema evolution benefits of Capnproto if you don't preserve the struct field numbers in the schema once they have been first assigned. As a safe guard, also check-in to version control your Capnproto schema (this should be obvious).
+
+Here is where this matters. Suppose that you have a Go struct called Job, and you have added Capnproto serialization to your project using bambam. Now you are happily serializing data at the speed of light to and from your Job struct.
+
+Fast-forward to a month later: It is a month later, and now you decide to add an additional Go field at the beginning of the Job struct. If you now *run bambam* again, you will generate a new capnproto schema that is almost surely incompatible with the first schema. This is because the field numbers (@0, @1, @2) will have changed. bambam has no way to know what the old definition of Job was. So it is up to you to insure schemas are evolved in a compatible way.
+
+While we can't do it all for you, bambam does try to help.  Go struct fields can be annotated with the `capid:"3"` struct annotation to insist that bambam assign @3 to a paritcular field in the generated Capnproto schema.
+
+example of capid annotion use
+~~~
+type Job struct { 
+   // In the scenario above, C was added later, after Job with only A and B has been in use/serialized.
+   // So here we insist on a back-compatible field numbering with the capid tag.
+   C int `capid:"2"`  // we added C later. 
+   A int `capid:"0"`
+   B int `capid:"1"` 
+}
+~~~
+
 -----
 -----
 
