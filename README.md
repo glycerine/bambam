@@ -1,11 +1,11 @@
 bambam: auto-generate capnproto schema from your golang source files.
 ======
 
-Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project can mean writing alot of boilerplate.
+Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project used to mean writing alot of boilerplate.
 
 Not anymore.
 
-Given a golang source file, bambam will generate a [capnproto](http://kentonv.github.io/capnproto/) schema. Even better: bambam will also generate translation functions to readily convert between golang structs and capnproto structs.
+Given a set of golang (Go) source files, bambam will generate a [capnproto](http://kentonv.github.io/capnproto/) schema. Even better: bambam will also generate translation functions to readily convert between your golang structs and the new capnproto structs.
 
 prereqs
 -------
