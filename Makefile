@@ -1,4 +1,13 @@
-all:
+
+build:
+	# version gets its data here:
+	rm -f gitcommit.go
+	/bin/echo "package main" > gitcommit.go
+	/bin/echo "var LASTGITCOMMITHASH string" >> gitcommit.go
+	/bin/echo "func init() { LASTGITCOMMITHASH = \"$(shell git rev-parse HEAD)\" }" >> gitcommit.go
+	go build
+
+full:
 	rm -f translateCapn.go schema.capnp.go && go test -v && go build && go install
 
 test:

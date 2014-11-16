@@ -32,12 +32,13 @@ type Field struct {
 }
 
 type Struct struct {
-	capName      string
-	goName       string
-	fld          []*Field
-	longestField int
-	comment      string
-	capIdMap     map[int]*Field
+	capName              string
+	goName               string
+	fld                  []*Field
+	longestField         int
+	comment              string
+	capIdMap             map[int]*Field
+	firstNonTextListSeen bool
 }
 
 func (s *Struct) computeFinalOrder() {
@@ -194,14 +195,10 @@ func (x *Extractor) SettersToGo(goName string) string {
 	//for i, f := range myStruct.fld {
 	//fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
 	i := 0
-	firstList := true
 	for _, f := range myStruct.fld {
 
 		if f.isList {
-			x.SettersToGoListHelper(&buf, myStruct, f, firstList)
-			if firstList {
-				firstList = false
-			}
+			x.SettersToGoListHelper(&buf, myStruct, f)
 		} else {
 			switch f.goType {
 			case "int":
@@ -219,7 +216,7 @@ func (x *Extractor) SettersToGo(goName string) string {
 	return string(buf.Bytes())
 }
 
-func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field, firstList bool) {
+func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field) {
 
 	//fmt.Printf("debug: field f = %#v\n", f)
 
@@ -228,8 +225,9 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
 		return
 	}
-	if firstList {
+	if !myStruct.firstNonTextListSeen {
 		fmt.Fprintf(buf, "\n    var n int\n")
+		myStruct.firstNonTextListSeen = true
 	}
 	// add a dereference (*) in from of the ToGo() invocation for go types that aren't pointers.
 	addStar := "*"

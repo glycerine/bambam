@@ -16,7 +16,8 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     #   -o=\"odir\" specifies the directory to write to (created if need be).\n")
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
-	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must come after any options.\n")
+	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
+	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must come after any options. Can also end with '.go.txt'.\n")
 	fmt.Fprintf(os.Stderr, "     #\n")
 	fmt.Fprintf(os.Stderr, "     # [1] https://github.com/glycerine/go-capnproto \n")
 	fmt.Fprintf(os.Stderr, "\n")
@@ -24,16 +25,29 @@ func use() {
 }
 
 func main() {
+	MainArgs(os.Args)
+}
+
+// allow invocation from test
+func MainArgs(args []string) {
+	fmt.Println(os.Args)
+	os.Args = args
 
 	flag.Usage = use
 	if len(os.Args) < 2 {
 		use()
 	}
 
+	verrequest := flag.Bool("version", false, "request git commit hash used to build this bambam")
 	outdir := flag.String("o", "odir", "specify output directory")
 	pkg := flag.String("p", "main", "specify package for generated code")
 	privs := flag.Bool("X", false, "export private as well as public struct fields")
 	flag.Parse()
+
+	if verrequest != nil && *verrequest {
+		fmt.Printf("%s\n", LASTGITCOMMITHASH)
+		os.Exit(0)
+	}
 
 	if outdir == nil || *outdir == "" {
 		fmt.Fprintf(os.Stderr, "required -o option missing. Use bambam -o <dirname> myfile.go # to specify the output directory.\n")

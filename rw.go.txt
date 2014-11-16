@@ -1,0 +1,12 @@
+package main
+
+// used in rw_test.go for round-trip testing write/read
+
+type RWTest struct {
+	Hello []string
+    //	World []int
+}
+
+func main() {
+
+}
