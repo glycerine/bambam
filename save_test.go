@@ -48,12 +48,11 @@ func (s *RWTest) Load(r io.Reader) {
   func RWTestGoToCapn(seg *capn.Segment, src *RWTest) RWTestCapn { 
     dest := AutoNewRWTestCapn(seg)
   
-    // text list
-    tl1 := seg.NewTextList(len(src.Hello))
+    mylist1 := seg.NewTextList(len(src.Hello))
     for i := range src.Hello {
-       tl1.Set(i, src.Hello[i])
+       mylist1.Set(i, string(src.Hello[i]))
     }
-    dest.SetHello(tl1)
+    dest.SetHello(mylist1)
   
     return dest
   } 
@@ -119,15 +118,14 @@ func RWTestCapnToGo(src RWTestCapn, dest *RWTest) *RWTest {
 func RWTestGoToCapn(seg *capn.Segment, src *RWTest) RWTestCapn { 
     dest := AutoNewRWTestCapn(seg)
   
-    // text list
-    tl1 := seg.NewTextList(len(src.Hello))
+    mylist1 := seg.NewTextList(len(src.Hello))
     for i := range src.Hello {
-       tl1.Set(i, src.Hello[i])
+       mylist1.Set(i, string(src.Hello[i]))
     }
-    dest.SetHello(tl1)
+    dest.SetHello(mylist1)
   
     mylist2 := seg.NewInt64List(len(src.World))
-    for i:=0; i < len(src.World); i++ {
+    for i:= range src.World {
        mylist2.Set(i, int64(src.World[i]))
     }
     dest.SetWorld(mylist2)

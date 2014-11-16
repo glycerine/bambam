@@ -19,6 +19,7 @@ import (
 type Field struct {
 	capname           string
 	GoCapGoName       string // Uppercased-first-letter of capname, as generated in go bindings.
+	GoCapGoType       string // int64 when goType is int, because capType is Int64.
 	capType           string
 	goName            string
 	goType            string
@@ -317,33 +318,19 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			switch f.goType {
 			case "int":
 				fallthrough
+			case "float64":
+				fallthrough
+			case "string":
+				fallthrough
 			case "int64":
 				fmt.Fprintf(&buf, `
 
-  mylist%d := seg.NewInt64List(len(src.%s))
-  for i:=0; i < len(src.%s); i++ {
-     mylist%d.Set(i, int64(src.%s[i]))
-  }
-  dest.Set%s(mylist%d)
-`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
-			case "float64":
-				fmt.Fprintf(&buf, `
-
-  mylist%d := seg.NewFloat64List(len(src.%s))
-  for i:=0; i < len(src.%s); i++ {
-     mylist%d.Set(i, src.%s[i])
-  }
-  dest.Set%s(mylist%d)
-`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
-			case "string":
-				fmt.Fprintf(&buf, `
-  // text list
-  tl%d := seg.NewTextList(len(src.%s))
+  mylist%d := seg.New%sList(len(src.%s))
   for i := range src.%s {
-     tl%d.Set(i, src.%s[i])
+     mylist%d.Set(i, %s(src.%s[i]))
   }
-  dest.Set%s(tl%d)
-`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
+  dest.Set%s(mylist%d)
+`, t.listNum, f.capType, f.goName, f.goName, t.listNum, f.GoCapGoType, f.goName, f.GoCapGoName, t.listNum)
 
 			default:
 				// handle list of struct
@@ -977,6 +964,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	curField.capname = loweredName
 
 	curField.GoCapGoName = UppercaseFirstLetter(loweredName)
+	curField.GoCapGoType = x.CapnTypeToGoType(capnTypeDisplayed)
 
 	curField.capType = capnTypeDisplayed
 	curField.goName = goFieldName
@@ -991,6 +979,42 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	//fmt.Printf("\n\n curField = %#v\n", curField)
 
 	return nil
+}
+
+func (x *Extractor) CapnTypeToGoType(capType string) (goType string) {
+
+	switch capType {
+	case "Text":
+		goType = "string"
+	case "Bool":
+		goType = "bool"
+	case "Int8":
+		goType = "int8"
+	case "Int16":
+		goType = "int16"
+	case "Int32":
+		goType = "int32"
+	case "Int64":
+		goType = "int64"
+	case "UInt8":
+		goType = "uint8"
+	case "UInt16":
+		goType = "uint16"
+	case "UInt32":
+		goType = "uint32"
+	case "UInt64":
+		goType = "uint64"
+	case "Float32":
+		goType = "float32"
+	case "Float64":
+		goType = "float64"
+	case "Data":
+		goType = "[]byte"
+
+	default:
+
+	}
+	return
 }
 
 func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (capnTypeDisplayed string) {

@@ -47,12 +47,11 @@ type s1 struct {
   func s1GoToCapn(seg *capn.Segment, src *s1) S1Capn { 
     dest := AutoNewS1Capn(seg)
   
-    // text list
-    tl1 := seg.NewTextList(len(src.Names))
+    mylist1 := seg.NewTextList(len(src.Names))
     for i := range src.Names {
-       tl1.Set(i, src.Names[i])
+       mylist1.Set(i, string(src.Names[i]))
     }
-    dest.SetNames(tl1)
+    dest.SetNames(mylist1)
   
     return dest
   } 

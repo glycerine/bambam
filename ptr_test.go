@@ -183,12 +183,11 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
 	dest.SetA(int64(src.A))
 	dest.SetB(src.B)
 
-	// text list
-	tl1 := seg.NewTextList(len(src.C))
+	mylist1 := seg.NewTextList(len(src.C))
 	for i := range src.C {
-		tl1.Set(i, src.C[i])
+		mylist1.Set(i, string(src.C[i]))
 	}
-	dest.SetC(tl1)
+	dest.SetC(mylist1)
 
 	return dest
 }
