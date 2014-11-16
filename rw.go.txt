@@ -13,14 +13,17 @@ import (
 type RWTest struct {
 	Hello []string
 	World []int
+	SixFour []int64
 }
 
 func main() {
 	hello := []string{"one", "two", "three"}
     integers := []int{1,2,3}
+    i64 := []int64{6,5,4}
 	rw := RWTest{
 		Hello: hello,
         World: integers,
+        SixFour: i64,
 	}
 
 	var o bytes.Buffer

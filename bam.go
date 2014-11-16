@@ -39,6 +39,7 @@ type Struct struct {
 	comment              string
 	capIdMap             map[int]*Field
 	firstNonTextListSeen bool
+	listNum              int
 }
 
 func (s *Struct) computeFinalOrder() {
@@ -302,38 +303,47 @@ func isPointerType(goTypePrefix string) bool {
 
 func (x *Extractor) SettersToCapn(goName string) string {
 	var buf bytes.Buffer
-	myStruct := x.srs[goName]
-	if myStruct == nil {
+	t := x.srs[goName]
+	if t == nil {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
-	//fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", myStruct)
-	//for i, f := range myStruct.fld {
-	for _, f := range myStruct.fld {
-		//fmt.Printf("\n\n SettersToCapn running on myStruct.fld[%d] = %#v\n", i, f)
+	//fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", t)
+	//for i, f := range t.fld {
+	for _, f := range t.fld {
+		//fmt.Printf("\n\n SettersToCapn running on t.fld[%d] = %#v\n", i, f)
 
 		if f.isList {
-
+			t.listNum++
 			switch f.goType {
 			case "int":
 				fallthrough
 			case "int64":
 				fmt.Fprintf(&buf, `
-  mylist := seg.NewInt64List(len(src.%s))
+
+  mylist%d := seg.NewInt64List(len(src.%s))
   for i:=0; i < len(src.%s); i++ {
-     mylist.Set(i, int64(src.%s[i]))
+     mylist%d.Set(i, int64(src.%s[i]))
   }
-  dest.Set%s(mylist)`, f.goName, f.goName, f.goName, f.GoCapGoName)
+  dest.Set%s(mylist%d)
+`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
 			case "float64":
-				//fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.capname, f.goName)
+				fmt.Fprintf(&buf, `
+
+  mylist := seg.NewFloat64List(len(src.%s))
+  for i:=0; i < len(src.%s); i++ {
+     mylist.Set(i, src.%s[i])
+  }
+  dest.Set%s(mylist)
+`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
 			case "string":
 				fmt.Fprintf(&buf, `
   // text list
-  tl := seg.NewTextList(len(src.%s))
+  tl%d := seg.NewTextList(len(src.%s))
   for i := range src.%s {
-     tl.Set(i, src.%s[i])
+     tl%d.Set(i, src.%s[i])
   }
-  dest.Set%s(tl)
-`, f.goName, f.goName, f.goName, f.GoCapGoName)
+  dest.Set%s(tl%d)
+`, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
 
 			default:
 				// handle list of struct
