@@ -9,7 +9,7 @@ import (
 func TestSave1(t *testing.T) {
 
 	cv.Convey("Given a parsable golang source file", t, func() {
-		cv.Convey("then structs with public fields get a save() method to serialize them, and a load() method to restore them.", func() {
+		cv.Convey("then structs with public fields get a Save() method to serialize them, and a Load() method to restore them.", func() {
 
 			exEmbed := `
 type RWTest struct {

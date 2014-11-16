@@ -264,11 +264,22 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 	n = src.%s().Len()
 	dest.%s = make(%s%s, n)
 	for i := 0; i < n; i++ {
-        dest.%s[i] = %s%sToGo(src.%s().At(i), nil)
+        dest.%s[i] = %s
     }
 
-`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, addStar, f.capType, f.goName)
+`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, ElemStarCapToGo(addStar, f))
 
+}
+
+func ElemStarCapToGo(addStar string, f *Field) string {
+	fmt.Printf("f = %#v   addStar = %v\n", f, addStar)
+	if IsIntrinsicGoType(f.goType) {
+		fmt.Printf("\n intrinsic detected.\n")
+		return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
+	} else {
+		fmt.Printf("\n non-intrinsic detected.\n")
+		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.capType, f.goName)
+	}
 }
 
 func isPointerType(goTypePrefix string) bool {
@@ -1117,4 +1128,42 @@ func ExtraSpaces(fieldNum int) string {
 		return " "
 	}
 	return ""
+}
+
+func IsIntrinsicGoType(goFieldTypeName string) bool {
+	fmt.Printf("\n IsIntrinsic called with '%s'\n", goFieldTypeName)
+
+	switch goFieldTypeName {
+	case "string":
+		return true
+	case "int":
+		return true
+	case "bool":
+		return true
+	case "int8":
+		return true
+	case "int16":
+		return true
+	case "int32":
+		return true
+	case "int64":
+		return true
+	case "uint8":
+		return true
+	case "uint16":
+		return true
+	case "uint32":
+		return true
+	case "uint64":
+		return true
+	case "float32":
+		return true
+	case "float64":
+		return true
+	case "byte":
+		return true
+	default:
+		return false
+	}
+	return false
 }
