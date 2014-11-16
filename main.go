@@ -129,7 +129,13 @@ func MainArgs(args []string) {
 	}
 	defer translatorFile.Close()
 	fmt.Fprintf(translatorFile, `package %s
-import capn "github.com/glycerine/go-capnproto"
+
+import (
+  capn "github.com/glycerine/go-capnproto"
+  "io"
+  "fmt"
+)
+
 `, x.pkgName)
 
 	_, err = x.WriteToTranslators(translatorFile)

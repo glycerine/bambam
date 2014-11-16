@@ -30,7 +30,7 @@ type s1 struct {
     	if err != nil {
     		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
     	}
-    	z := schema.ReadRootS1Capn(capMsg)
+    	z := testpkg.ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
     }
   

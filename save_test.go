@@ -32,7 +32,7 @@ func (s *RWTest) Load(r io.Reader) {
 	if err != nil {
 		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 	}
-	z := schema.ReadRootRWTestCapn(capMsg)
+	z := testpkg.ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
 }
   
@@ -92,7 +92,7 @@ func (s *RWTest) Load(r io.Reader) {
 	if err != nil {
 		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 	}
-	z := schema.ReadRootRWTestCapn(capMsg)
+	z := testpkg.ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
 }
 
@@ -126,6 +126,12 @@ func RWTestGoToCapn(seg *capn.Segment, src *RWTest) RWTestCapn {
     }
     dest.SetHello(tl)
   
+    mylist := seg.NewInt64List(len(src.World))
+    for i:=0; i < len(src.World); i++ {
+       mylist.Set(i, int64(src.World[i]))
+    }
+    dest.SetWorld(mylist)
+
     return dest
 }
 `)

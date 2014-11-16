@@ -1,6 +1,13 @@
 package main
 
-/*
+import (
+	"os"
+	"os/exec"
+	"testing"
+
+	cv "github.com/smartystreets/goconvey/convey"
+)
+
 func TestWriteReadThroughGeneratedTranslationCode(t *testing.T) {
 
 	cv.Convey("Given bambam generated go bindings", t, func() {
@@ -22,7 +29,10 @@ func TestWriteReadThroughGeneratedTranslationCode(t *testing.T) {
 			err = exec.Command("go", "build").Run()
 			cv.So(err, cv.ShouldEqual, nil)
 
+			// run it
+			err = exec.Command("./" + tdir.DirPath).Run()
+			cv.So(err, cv.ShouldEqual, nil)
+
 		})
 	})
 }
-*/

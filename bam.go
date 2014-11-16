@@ -170,23 +170,23 @@ func (x *Extractor) GenerateTranslators() {
 	for _, s := range x.srs {
 
 		x.SaveCode[s.goName] = []byte(fmt.Sprintf(`
-  func (s *%s) Save(w io.Writer) {
+func (s *%s) Save(w io.Writer) {
   	seg := capn.NewBuffer(nil)
   	%sGoToCapn(seg, s)
   	seg.WriteTo(w)
-  }
+}
  `, s.goName, s.goName))
 
 		x.LoadCode[s.goName] = []byte(fmt.Sprintf(` 
-  func (s *%s) Load(r io.Reader) {
+func (s *%s) Load(r io.Reader) {
   	capMsg, err := capn.ReadFromStream(r, nil)
   	if err != nil {
   		panic(fmt.Errorf("capn.ReadFromStream error: %%s", err))
   	}
-  	z := schema.ReadRoot%s(capMsg)
+  	z := %sReadRoot%s(capMsg)
       %sToGo(z, s)
-  }
-`, s.goName, s.capName, s.capName))
+}
+`, s.goName, x.packageDot(), s.capName, s.capName))
 
 		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
 func %sToGo(src %s, dest *%s) *%s { 
@@ -207,6 +207,13 @@ func %sGoToCapn(seg *capn.Segment, src *%s) %s {
 `, s.goName, s.goName, s.capName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
+}
+
+func (x *Extractor) packageDot() string {
+	if x.pkgName == "" || x.pkgName == "main" {
+		return ""
+	}
+	return x.pkgName + "."
 }
 
 func (x *Extractor) SettersToGo(goName string) string {
@@ -308,9 +315,14 @@ func (x *Extractor) SettersToCapn(goName string) string {
 
 			switch f.goType {
 			case "int":
-				//fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.capname, f.goName)
+				fallthrough
 			case "int64":
-				//fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.capname, f.goName)
+				fmt.Fprintf(&buf, `
+  mylist := seg.NewInt64List(len(src.%s))
+  for i:=0; i < len(src.%s); i++ {
+     mylist.Set(i, int64(src.%s[i]))
+  }
+  dest.Set%s(mylist)`, f.goName, f.goName, f.goName, f.GoCapGoName)
 			case "float64":
 				//fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.capname, f.goName)
 			case "string":

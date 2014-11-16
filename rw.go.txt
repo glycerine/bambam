@@ -4,28 +4,42 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+    "bytes"
+	"github.com/shurcooL/go-goon"
 )
 
 // used in rw_test.go for round-trip testing write/read
 
 type RWTest struct {
 	Hello []string
-	//	World []int
+	World []int
 }
 
 func main() {
 	hello := []string{"one", "two", "three"}
+    integers := []int{1,2,3}
 	rw := RWTest{
 		Hello: hello,
+        World: integers,
 	}
 
-	var o buf.Bytes
+	var o bytes.Buffer
 	rw.Save(&o)
 
-	rw2 := rw.Load(&o)
+    rw2 := &RWTest{}
+	rw2.Load(&o)
 
 	if !reflect.DeepEqual(&rw, rw2) {
 		fmt.Printf("rw and rw2 were not equal!\n")
+
+		fmt.Printf("\n\n =============  rw: ====\n")
+		goon.Dump(rw)
+		fmt.Printf("\n\n =============  rw2: ====\n")
+		goon.Dump(rw2)
+		fmt.Printf("\n\n ================\n")
+
 		os.Exit(1)
 	}
+
+	fmt.Printf("Load() data matched Saved() data.\n")
 }
