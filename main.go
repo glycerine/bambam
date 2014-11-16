@@ -17,7 +17,7 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
-	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must come after any options. Can also end with '.go.txt'.\n")
+	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must be last, after options.\n")
 	fmt.Fprintf(os.Stderr, "     #\n")
 	fmt.Fprintf(os.Stderr, "     # [1] https://github.com/glycerine/go-capnproto \n")
 	fmt.Fprintf(os.Stderr, "\n")
