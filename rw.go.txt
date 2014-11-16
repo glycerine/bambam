@@ -1,12 +1,31 @@
 package main
 
+import (
+	"fmt"
+	"os"
+	"reflect"
+)
+
 // used in rw_test.go for round-trip testing write/read
 
 type RWTest struct {
 	Hello []string
-    //	World []int
+	//	World []int
 }
 
 func main() {
+	hello := []string{"one", "two", "three"}
+	rw := RWTest{
+		Hello: hello,
+	}
 
+	var o buf.Bytes
+	rw.Save(&o)
+
+	rw2 := rw.Load(&o)
+
+	if !reflect.DeepEqual(&rw, rw2) {
+		fmt.Printf("rw and rw2 were not equal!\n")
+		os.Exit(1)
+	}
 }

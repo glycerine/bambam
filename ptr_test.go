@@ -40,6 +40,21 @@ type s1 struct {
 struct BigCapn { a @0: Int64; }
 struct S1Capn { ptrs @0: List(BigCapn); } 
 
+    func (s *Big) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	BigGoToCapn(seg, s)
+    	seg.WriteTo(w)
+    }
+      
+    func (s *Big) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := schema.ReadRootBigCapn(capMsg)
+        BigCapnToGo(z, s)
+    }
+
 func BigCapnToGo(src BigCapn, dest *Big) *Big {
 	if dest == nil {
 		dest = &Big{}
@@ -50,11 +65,29 @@ func BigCapnToGo(src BigCapn, dest *Big) *Big {
 }
 
 func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
-	dest := NewBigCapn(seg)
+	dest := AutoNewBigCapn(seg)
 	dest.SetA(int64(src.A))
 
 	return dest
 }
+
+  
+    func (s *s1) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	s1GoToCapn(seg, s)
+    	seg.WriteTo(w)
+    }
+   
+  
+   
+    func (s *s1) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := schema.ReadRootS1Capn(capMsg)
+        S1CapnToGo(z, s)
+    }
 
 func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 	if dest == nil {
@@ -74,7 +107,7 @@ func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 }
 
 func s1GoToCapn(seg *capn.Segment, src *s1) S1Capn {
-	dest := NewS1Capn(seg)
+	dest := AutoNewS1Capn(seg)
 
 	// Ptrs -> BigCapn (go slice to capn list)
 	if len(src.Ptrs) > 0 {
@@ -115,6 +148,24 @@ type s1 struct {
 			expect0 := `
 struct BigCapn { a  @0:   Int64; b  @1:   Text; c  @2:   List(Text); } 
 struct S1Capn { ptrs      @0:   List(BigCapn); straight  @1:   List(BigCapn); } 
+
+  
+    func (s *Big) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	BigGoToCapn(seg, s)
+    	seg.WriteTo(w)
+    }
+   
+  
+   
+    func (s *Big) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := schema.ReadRootBigCapn(capMsg)
+        BigCapnToGo(z, s)
+    }
   
 func BigCapnToGo(src BigCapn, dest *Big) *Big {
 	if dest == nil {
@@ -128,7 +179,7 @@ func BigCapnToGo(src BigCapn, dest *Big) *Big {
 }
 
 func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
-	dest := NewBigCapn(seg)
+	dest := AutoNewBigCapn(seg)
 	dest.SetA(int64(src.A))
 	dest.SetB(src.B)
 
@@ -141,6 +192,24 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
 
 	return dest
 }
+
+  
+    func (s *s1) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	s1GoToCapn(seg, s)
+    	seg.WriteTo(w)
+    }
+   
+  
+   
+    func (s *s1) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := schema.ReadRootS1Capn(capMsg)
+        S1CapnToGo(z, s)
+    }
 
 func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 	if dest == nil {
@@ -167,7 +236,7 @@ func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 }
 
 func s1GoToCapn(seg *capn.Segment, src *s1) S1Capn {
-	dest := NewS1Capn(seg)
+	dest := AutoNewS1Capn(seg)
 
 	// Ptrs -> BigCapn (go slice to capn list)
 	if len(src.Ptrs) > 0 {

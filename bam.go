@@ -136,6 +136,8 @@ type Extractor struct {
 	srs        map[string]*Struct
 	ToGoCode   map[string][]byte
 	ToCapnCode map[string][]byte
+	SaveCode   map[string][]byte
+	LoadCode   map[string][]byte
 
 	compileDir *TempDir
 }
@@ -150,6 +152,8 @@ func NewExtractor() *Extractor {
 		// key is goTypeName
 		ToGoCode:   make(map[string][]byte),
 		ToCapnCode: make(map[string][]byte),
+		SaveCode:   make(map[string][]byte),
+		LoadCode:   make(map[string][]byte),
 		srs:        make(map[string]*Struct),
 		compileDir: NewTempDir(),
 	}
@@ -164,6 +168,26 @@ func (x *Extractor) Cleanup() {
 func (x *Extractor) GenerateTranslators() {
 
 	for _, s := range x.srs {
+
+		x.SaveCode[s.goName] = []byte(fmt.Sprintf(`
+  func (s *%s) Save(w io.Writer) {
+  	seg := capn.NewBuffer(nil)
+  	%sGoToCapn(seg, s)
+  	seg.WriteTo(w)
+  }
+ `, s.goName, s.goName))
+
+		x.LoadCode[s.goName] = []byte(fmt.Sprintf(` 
+  func (s *%s) Load(r io.Reader) {
+  	capMsg, err := capn.ReadFromStream(r, nil)
+  	if err != nil {
+  		panic(fmt.Errorf("capn.ReadFromStream error: %%s", err))
+  	}
+  	z := schema.ReadRoot%s(capMsg)
+      %sToGo(z, s)
+  }
+`, s.goName, s.capName, s.capName))
+
 		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
 func %sToGo(src %s, dest *%s) *%s { 
   if dest == nil { 
@@ -176,7 +200,7 @@ func %sToGo(src %s, dest *%s) *%s {
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
 func %sGoToCapn(seg *capn.Segment, src *%s) %s { 
-  dest := New%s(seg)
+  dest := AutoNew%s(seg)
 %s
   return dest
 } 
@@ -449,6 +473,30 @@ func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
 	// now print the translating methods, in a second pass over structures, to accomodate
 	// our test structure
 	for _, s := range sortedStructs {
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(x.SaveCode[s.goName])
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(x.LoadCode[s.goName])
+		n += int64(m)
+		if err != nil {
+			return
+		}
 
 		m, err = fmt.Fprintf(w, "\n\n")
 		n += int64(m)

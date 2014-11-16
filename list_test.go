@@ -18,6 +18,21 @@ type s1 struct {
 
 			expected0 := `
   struct S1Capn { names  @0:   List(Text); } 
+
+    func (s *s1) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	s1GoToCapn(seg, s)
+    	seg.WriteTo(w)
+    }
+      
+    func (s *s1) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := schema.ReadRootS1Capn(capMsg)
+        S1CapnToGo(z, s)
+    }
   
   func S1CapnToGo(src S1Capn, dest *s1) *s1 { 
     if dest == nil { 
@@ -30,7 +45,7 @@ type s1 struct {
   } 
   
   func s1GoToCapn(seg *capn.Segment, src *s1) S1Capn { 
-    dest := NewS1Capn(seg)
+    dest := AutoNewS1Capn(seg)
   
     // text list
     tl := seg.NewTextList(len(src.Names))

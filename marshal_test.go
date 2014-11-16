@@ -44,7 +44,7 @@ func ExtraCapnToGo(src ExtraCapn, dest *Extra) *Extra {
 				toCapnCode := ExtractGoToCapnCode(ex0, "Extra")
 				cv.So(toCapnCode, ShouldMatchModuloWhiteSpace, `
 func ExtraGoToCapn(seg *capn.Segment, src *Extra) ExtraCapn { 
-  dest := NewExtraCapn(seg)
+  dest := AutoNewExtraCapn(seg)
   dest.SetA(int64(src.A))
   dest.SetB(int64(src.B))
   return dest } 
