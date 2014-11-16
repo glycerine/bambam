@@ -329,11 +329,11 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			case "float64":
 				fmt.Fprintf(&buf, `
 
-  mylist := seg.NewFloat64List(len(src.%s))
+  mylist%d := seg.NewFloat64List(len(src.%s))
   for i:=0; i < len(src.%s); i++ {
-     mylist.Set(i, src.%s[i])
+     mylist%d.Set(i, src.%s[i])
   }
-  dest.Set%s(mylist)
+  dest.Set%s(mylist%d)
 `, t.listNum, f.goName, f.goName, t.listNum, f.goName, f.GoCapGoName, t.listNum)
 			case "string":
 				fmt.Fprintf(&buf, `

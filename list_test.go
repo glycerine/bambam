@@ -48,11 +48,11 @@ type s1 struct {
     dest := AutoNewS1Capn(seg)
   
     // text list
-    tl := seg.NewTextList(len(src.Names))
+    tl1 := seg.NewTextList(len(src.Names))
     for i := range src.Names {
-       tl.Set(i, src.Names[i])
+       tl1.Set(i, src.Names[i])
     }
-    dest.SetNames(tl)
+    dest.SetNames(tl1)
   
     return dest
   } 

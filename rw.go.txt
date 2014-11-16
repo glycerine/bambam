@@ -11,19 +11,18 @@ import (
 // used in rw_test.go for round-trip testing write/read
 
 type RWTest struct {
-	Hello []string
-	World []int
-	SixFour []int64
+	Hello    []string
+	World    []int
+	SixFour  []int64
+	Floaters []float64
 }
 
 func main() {
-	hello := []string{"one", "two", "three"}
-    integers := []int{1,2,3}
-    i64 := []int64{6,5,4}
 	rw := RWTest{
-		Hello: hello,
-        World: integers,
-        SixFour: i64,
+		Hello:    []string{"one", "two", "three"},
+		World:    []int{1, 2, 3},
+		SixFour:  []int64{6, 5, 4},
+		Floaters: []float64{1.5, 4.5},
 	}
 
 	var o bytes.Buffer
