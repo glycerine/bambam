@@ -75,5 +75,19 @@ func main() {
 
 ~~~
 
+what Go types does bambam recognize?
+----------------------------------------
+
+Supported: structs, slices, and primitve/scalar types are supported. Nesting of structs and slices of structs are supported.
+
+Currently unsupported (at the moment; pull requests welcome): Go maps.  
+
+Also: some pointers work, but pointers in the inner-most struct do not. This is not a big limitation, as it is rarely meaningful to pass a pointer value to a different process.
+
+Not planned (likely never supported): Go interfaces, Go channels.
+
+-----
+-----
+
 Copyright (c) 2014, Jason E. Aten, Ph.D.
 
