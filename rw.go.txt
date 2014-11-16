@@ -18,6 +18,14 @@ type Nester2 struct {
      N1     []Nester1
 }
 
+type Ptr1 struct {
+  Strs []string
+}
+
+type Ptr2 struct {
+     P1  []*Ptr1
+}
+
 type RWTest struct {
 	Hello    []string
 	World    []int
@@ -25,15 +33,21 @@ type RWTest struct {
 	Floaters []float64
 
     N2 []Nester2
+    P2 []*Ptr2
 }
 
 func main() {
+
+	thing1 := "thing1"
+	thing2 := "thing2"
+
 	rw := RWTest{
 		Hello:    []string{"one", "two", "three"},
 		World:    []int{1, 2, 3},
 		SixFour:  []int64{6, 5, 4},
 		Floaters: []float64{1.5, 4.5},
 		N2:       []Nester2{Nester2{N1: []Nester1{Nester1{Strs: []string{"hey", "joe"}}}}},
+		P2:       []*Ptr2{&Ptr2{P1: []*Ptr1{&Ptr1{Strs: []string{thing1, thing2}}}}},
 	}
 
 	var o bytes.Buffer
