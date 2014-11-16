@@ -94,16 +94,19 @@ Here is where this matters. Suppose that you have a Go struct called Job, and yo
 
 Fast-forward to a month later: It is a month later, and now you decide to add an additional Go field at the beginning of the Job struct. If you now *run bambam* again, you will generate a new capnproto schema that is almost surely incompatible with the first schema. This is because the field numbers (@0, @1, @2) will have changed. bambam has no way to know what the old definition of Job was. So it is up to you to insure schemas are evolved in a compatible way.
 
-While we can't do it all for you, bambam does try to help.  Go struct fields can be annotated with the `capid:"3"` struct annotation to insist that bambam assign @3 to a paritcular field in the generated Capnproto schema.
+While we can't do it all for you, bambam does try to help.  Go struct fields can be annotated with the `capid:"3"` struct annotation to insist that bambam assign @3 to a paritcular field in the generated Capnproto schema. In fact you'll need to insist on the numbering of all the already-in-use fields if you want to stay backwards compatible.  
+
+The conclusion and recommendation for avoiding trouble is simple: put capid tags on all your Go struct fields. In the future we imagine being able to add the tags to your go file auto-magically at bootstrap time, but for now this is your responsibility.
 
 example of capid annotion use
 ~~~
 type Job struct { 
-   // In the scenario above, C was added later, after Job with only A and B has been in use/serialized.
+   // In the scenario above, C was added later, after Job with only A and P has been in use.
    // So here we insist on a back-compatible field numbering with the capid tag.
-   C int `capid:"2"`  // we added C later. 
+   C int `capid:"3"`  // we added C later. 
    A int `capid:"0"`
-   B int `capid:"1"` 
+   P int `capid:"1"` 
+   N int `capid:"2"` 
 }
 ~~~
 
