@@ -78,7 +78,7 @@ func main() {
 what Go types does bambam recognize?
 ----------------------------------------
 
-Supported: structs, slices, and primitve/scalar types are supported. Nesting of structs and slices of structs are supported.
+Supported: structs, slices, and primitve/scalar types are supported. Structs that contain structs are supported. You have both slices of scalars and slices of structs available.
 
 Currently unsupported (at the moment; pull requests welcome): Go maps.  
 
