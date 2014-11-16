@@ -281,12 +281,12 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 }
 
 func ElemStarCapToGo(addStar string, f *Field) string {
-	fmt.Printf("f = %#v   addStar = %v\n", f, addStar)
+	//fmt.Printf("f = %#v   addStar = %v\n", f, addStar)
 	if IsIntrinsicGoType(f.goType) {
-		fmt.Printf("\n intrinsic detected.\n")
+		//fmt.Printf("\n intrinsic detected.\n")
 		return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
 	} else {
-		fmt.Printf("\n non-intrinsic detected.\n")
+		//fmt.Printf("\n non-intrinsic detected.\n")
 		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.capType, f.goName)
 	}
 }
@@ -1177,7 +1177,7 @@ func ExtraSpaces(fieldNum int) string {
 }
 
 func IsIntrinsicGoType(goFieldTypeName string) bool {
-	fmt.Printf("\n IsIntrinsic called with '%s'\n", goFieldTypeName)
+	//fmt.Printf("\n IsIntrinsic called with '%s'\n", goFieldTypeName)
 
 	switch goFieldTypeName {
 	case "string":
