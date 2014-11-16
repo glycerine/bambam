@@ -10,11 +10,21 @@ import (
 
 // used in rw_test.go for round-trip testing write/read
 
+type Nester1 struct {
+  Strs []string
+}
+
+type Nester2 struct {
+     N1     []Nester1
+}
+
 type RWTest struct {
 	Hello    []string
 	World    []int
 	SixFour  []int64
 	Floaters []float64
+
+    N2 []Nester2
 }
 
 func main() {
@@ -23,6 +33,7 @@ func main() {
 		World:    []int{1, 2, 3},
 		SixFour:  []int64{6, 5, 4},
 		Floaters: []float64{1.5, 4.5},
+		N2:       []Nester2{Nester2{N1: []Nester1{Nester1{Strs: []string{"hey", "joe"}}}}},
 	}
 
 	var o bytes.Buffer
