@@ -15,6 +15,7 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     # options:\n")
 	fmt.Fprintf(os.Stderr, "     #   -o=\"odir\" specifies the directory to write to (created if need be).\n")
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
+	fmt.Fprintf(os.Stderr, "     #   -readonly  don't add `capid` tags to public struct fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
 	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must be last, after options.\n")
@@ -42,6 +43,7 @@ func MainArgs(args []string) {
 	outdir := flag.String("o", "odir", "specify output directory")
 	pkg := flag.String("p", "main", "specify package for generated code")
 	privs := flag.Bool("X", false, "export private as well as public struct fields")
+	readonly := flag.Bool("readonly", false, "don't add `capid` tags to public struct fields.")
 	flag.Parse()
 
 	if verrequest != nil && *verrequest {
@@ -84,11 +86,11 @@ func MainArgs(args []string) {
 	x := NewExtractor()
 	x.fieldPrefix = "   "
 	x.fieldSuffix = "\n"
+	x.readOnly = *readonly
+	x.outDir = *outdir
 	if privs != nil {
 		x.extractPrivate = *privs
 	}
-
-	ExtractStructs(inputFiles[0], nil, x)
 
 	for _, inFile := range inputFiles {
 		_, err := x.ExtractStructsFromOneFile(nil, inFile)
@@ -139,6 +141,11 @@ import (
 `, x.pkgName)
 
 	_, err = x.WriteToTranslators(translatorFile)
+	if err != nil {
+		panic(err)
+	}
+
+	err = x.CopySourceFilesAddCapidTag()
 	if err != nil {
 		panic(err)
 	}

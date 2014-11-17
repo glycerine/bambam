@@ -30,6 +30,7 @@ type Field struct {
 	orderOfAppearance int
 	finalOrder        int
 	embedded          bool
+	astField          *ast.Field
 }
 
 type Struct struct {
@@ -41,6 +42,12 @@ type Struct struct {
 	capIdMap             map[int]*Field
 	firstNonTextListSeen bool
 	listNum              int
+}
+
+type SrcFile struct {
+	Fname   string
+	Fset    *token.FileSet
+	AstFile *ast.File
 }
 
 func (s *Struct) computeFinalOrder() {
@@ -142,6 +149,9 @@ type Extractor struct {
 	LoadCode   map[string][]byte
 
 	compileDir *TempDir
+	readOnly   bool
+	outDir     string
+	srcFiles   []*SrcFile
 }
 
 func NewExtractor() *Extractor {
@@ -158,6 +168,7 @@ func NewExtractor() *Extractor {
 		LoadCode:   make(map[string][]byte),
 		srs:        make(map[string]*Struct),
 		compileDir: NewTempDir(),
+		srcFiles:   make([]*SrcFile, 0),
 	}
 }
 
@@ -477,6 +488,21 @@ func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 	return
 }
 
+func (x *Extractor) CopySourceFilesAddCapidTag() error {
+	if x.readOnly {
+		return nil
+	}
+	for _, s := range x.srcFiles {
+		if s.Fname != "" {
+			err := x.PrettyPrint(s.Fset, s.AstFile, x.compileDir.DirPath+"/"+s.Fname)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
 
 	var m int
@@ -621,9 +647,11 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 		panic(err)
 	}
 
-	//	fmt.Printf("parsed output f.Decls is:\n")
-	//	goon.Dump(f.Decls)
+	if fname != "" {
+		x.srcFiles = append(x.srcFiles, &SrcFile{Fname: fname, Fset: fset, AstFile: f})
+	}
 
+	//	fmt.Printf("parsed output f.Decls is:\n")
 	//fmt.Printf("len(f.Decls) = %d\n", len(f.Decls))
 
 	for _, v := range f.Decls {
@@ -871,13 +899,13 @@ const NotList = false
 const NotEmbedded = false
 const YesEmbedded = true
 
-func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, fld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, astfld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
 
 	if goFieldTypeName == "" {
 		return nil
 	}
 
-	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', fld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, fld, tag)
+	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', astfld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, astfld, tag)
 
 	// if we are ignoring private (lowercase first letter) fields, then stop here.
 	if !IsEmbedded {
@@ -886,7 +914,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 		}
 	}
 
-	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded}
+	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded, astField: astfld}
 
 	var tagValue string
 	loweredName := underToCamelCase(LowercaseCapnpFieldName(goFieldName))
