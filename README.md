@@ -103,9 +103,13 @@ When you run `bambam`, it will generate a modified copy of your go source files 
 
 These new versions include capid tags on all public fields of structs. You should inspect the copy of the source file in the output directory, and then replace your original source with the tagged version.  You can also manually add capid tags to fields, if you need to manually specify a field number (e.g. you are matching an pre-existing capnproto definition).
 
-Only public fields (with Captial first letter in their name) are tagged. The -X flag ignores the public/private distinction, and tags all fields.
+If you are feeling especially bold, `bambam -OVERWRITE my.go` will replace my.go with the capid tagged version. For safety, only do this on backed and version controlled source files.
+
+By default only public fields (with Captial first letter in their name) are tagged. The -X flag ignores the public/private distinction, and tags all fields.
 
 The capid tags allow the capnproto schema evolution to function properly as you add new fields to structs. If you don't include the capid tags, your serialization code won't be backwards compatible as you change your structs.
+
+Deleting fields from your go structs isn't (currently) particularly well-supported. We could potentially allow fields to be // commented out in the go source and yet still parse the comments and use that parse to keep the schema correct, but that's not a trivial bit of work.
 
 example of capid annotion use
 ~~~
