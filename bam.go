@@ -16,6 +16,60 @@ import (
 	"unicode"
 )
 
+type Extractor struct {
+	fieldCount  int
+	out         bytes.Buffer
+	pkgName     string
+	importDecl  string
+	fieldPrefix string
+	fieldSuffix string
+
+	curStruct      *Struct
+	heldComment    string
+	extractPrivate bool
+
+	// map structs' goName <-> capName
+	goType2capType map[string]string
+	capType2goType map[string]string
+
+	// key is goName
+	srs        map[string]*Struct
+	ToGoCode   map[string][]byte
+	ToCapnCode map[string][]byte
+	SaveCode   map[string][]byte
+	LoadCode   map[string][]byte
+
+	compileDir *TempDir
+	readOnly   bool
+	outDir     string
+	srcFiles   []*SrcFile
+	PubYXZ     int `capid:"0"`
+}
+
+func NewExtractor() *Extractor {
+	return &Extractor{
+		pkgName:        "testpkg",
+		importDecl:     "testpkg",
+		goType2capType: make(map[string]string),
+		capType2goType: make(map[string]string),
+
+		// key is goTypeName
+		ToGoCode:   make(map[string][]byte),
+		ToCapnCode: make(map[string][]byte),
+		SaveCode:   make(map[string][]byte),
+		LoadCode:   make(map[string][]byte),
+		srs:        make(map[string]*Struct),
+		compileDir: NewTempDir(),
+		srcFiles:   make([]*SrcFile, 0),
+	}
+}
+
+func (x *Extractor) Cleanup() {
+	if x.compileDir != nil {
+		x.compileDir.Cleanup()
+	}
+}
+
 type Field struct {
 	capname           string
 	GoCapGoName       string // Uppercased-first-letter of capname, as generated in go bindings.
@@ -122,59 +176,6 @@ func NewStruct(capName, goName string) *Struct {
 		goName:   goName,
 		fld:      []*Field{},
 		capIdMap: map[int]*Field{},
-	}
-}
-
-type Extractor struct {
-	fieldCount  int
-	out         bytes.Buffer
-	pkgName     string
-	importDecl  string
-	fieldPrefix string
-	fieldSuffix string
-
-	curStruct      *Struct
-	heldComment    string
-	extractPrivate bool
-
-	// map structs' goName <-> capName
-	goType2capType map[string]string
-	capType2goType map[string]string
-
-	// key is goName
-	srs        map[string]*Struct
-	ToGoCode   map[string][]byte
-	ToCapnCode map[string][]byte
-	SaveCode   map[string][]byte
-	LoadCode   map[string][]byte
-
-	compileDir *TempDir
-	readOnly   bool
-	outDir     string
-	srcFiles   []*SrcFile
-}
-
-func NewExtractor() *Extractor {
-	return &Extractor{
-		pkgName:        "testpkg",
-		importDecl:     "testpkg",
-		goType2capType: make(map[string]string),
-		capType2goType: make(map[string]string),
-
-		// key is goTypeName
-		ToGoCode:   make(map[string][]byte),
-		ToCapnCode: make(map[string][]byte),
-		SaveCode:   make(map[string][]byte),
-		LoadCode:   make(map[string][]byte),
-		srs:        make(map[string]*Struct),
-		compileDir: NewTempDir(),
-		srcFiles:   make([]*SrcFile, 0),
-	}
-}
-
-func (x *Extractor) Cleanup() {
-	if x.compileDir != nil {
-		x.compileDir.Cleanup()
 	}
 }
 
@@ -488,10 +489,62 @@ func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 	return
 }
 
+func (x *Extractor) GenCapidTag(f *Field) string {
+	if f.astField == nil {
+		f.astField = &ast.Field{}
+	}
+	if f.astField.Tag == nil {
+		f.astField.Tag = &ast.BasicLit{}
+	}
+
+	curTag := f.astField.Tag.Value
+
+	if hasCapidTag(curTag) {
+		return curTag
+	}
+	// else add one
+	addme := fmt.Sprintf(`capid:"%d"`, f.finalOrder)
+	if curTag == "" || curTag == "``" {
+		return fmt.Sprintf("`%s`", addme)
+	}
+	return fmt.Sprintf("`%s,%s`", stripBackticks(curTag), addme)
+}
+
+func hasCapidTag(s string) bool {
+	return strings.Contains(s, "capid")
+}
+
+func stripBackticks(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	r := []rune(s)
+	if r[0] == '`' {
+		r = r[1:]
+	}
+	if len(r) > 0 && r[len(r)-1] == '`' {
+		r = r[:len(r)-1]
+	}
+	return string(r)
+}
+
 func (x *Extractor) CopySourceFilesAddCapidTag() error {
 	if x.readOnly {
 		return nil
 	}
+
+	// run through struct fields, adding tags
+	for _, s := range x.srs {
+		for _, f := range s.fld {
+
+			fmt.Printf("\n\n\n ********** before  f.astField.Tag = %#v\n", f.astField.Tag)
+			f.astField.Tag.Value = x.GenCapidTag(f)
+			fmt.Printf("\n\n\n ********** AFTER:  f.astField.Tag = %#v\n", f.astField.Tag)
+		}
+	}
+
+	// run through files, printing
 	for _, s := range x.srcFiles {
 		if s.Fname != "" {
 			err := x.PrettyPrint(s.Fset, s.AstFile, x.compileDir.DirPath+"/"+s.Fname)
