@@ -43,7 +43,6 @@ func MainArgs(args []string) {
 	outdir := flag.String("o", "odir", "specify output directory")
 	pkg := flag.String("p", "main", "specify package for generated code")
 	privs := flag.Bool("X", false, "export private as well as public struct fields")
-	readonly := flag.Bool("readonly", false, "don't add `capid` tags to public struct fields.")
 	overwrite := flag.Bool("OVERWRITE", false, "replace named .go files with capid tagged versions.")
 	flag.Parse()
 
@@ -87,7 +86,6 @@ func MainArgs(args []string) {
 	x := NewExtractor()
 	x.fieldPrefix = "   "
 	x.fieldSuffix = "\n"
-	x.readOnly = *readonly
 	x.outDir = *outdir
 	if privs != nil {
 		x.extractPrivate = *privs

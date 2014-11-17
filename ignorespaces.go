@@ -38,9 +38,12 @@ func ShouldMatchModulo(ignoring map[rune]bool, actual interface{}, expected ...i
 		diffpoint := ""
 		const diffMax = 20
 		vrune := []rune(value)
-		n := len(vrune) - vpos + 1
+		n := len(vrune) - vpos
 		if n > diffMax {
 			n = diffMax
+		}
+		if vpos == 0 {
+			vpos = 1
 		}
 		diffpoint = string(vrune[vpos-1 : (vpos - 1 + n)])
 

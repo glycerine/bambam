@@ -154,3 +154,102 @@ func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 		})
 	})
 }
+
+// ==========================================
+// ==========================================
+
+func TestSliceOfSliceOfStruct(t *testing.T) {
+
+	cv.Convey("Given a go struct a slice of slice of int: type Cooper struct { Formation [][]Mini } ", t, func() {
+		cv.Convey("then then List(List(Mini)) should be generated in the capnp schema", func() {
+
+			in0 := `
+type Mini struct {
+  A int64
+}
+type Cooper struct {
+  Formation [][]Mini
+}`
+
+			expect0 := `
+`
+			cv.So(ExtractString2String(in0), ShouldMatchModuloWhiteSpace, expect0)
+
+		})
+	})
+}
+
+// ==========================================
+// ==========================================
+
+func TestSliceOfSliceOfInt(t *testing.T) {
+
+	cv.Convey("Given a go struct a slice of slice: type Cooper struct { A [][]int } ", t, func() {
+		cv.Convey("then then List(List(Int64)) should be generated in the capnp schema", func() {
+
+			in0 := `
+type Cooper struct {
+  A [][]int
+}`
+
+			expect0 := `
+struct CooperCapn { a  @0:   List(List(Int64)); } 
+
+`
+			/*
+			   `
+			   func (s *Cooper) Save(w io.Writer) {
+			       	seg := capn.NewBuffer(nil)
+			       	CooperGoToCapn(seg, s)
+			       	seg.WriteTo(w)
+			   }
+
+			     func (s *Cooper) Load(r io.Reader) {
+			       	capMsg, err := capn.ReadFromStream(r, nil)
+			       	if err != nil {
+			       		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+			       	}
+			       	z := testpkg.ReadRootCooperCapn(capMsg)
+			           CooperCapnToGo(z, s)
+			     }
+
+
+			   func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper {
+			       if dest == nil {
+			         dest = &Cooper{}
+			       }
+
+			       var n int
+
+			        // A
+			     	n = src.A().Len()
+			     	dest.A = make([][]int, n)
+			     	for i := 0; i < n; i++ {
+			             dest.A[i] = int(src.A().At(i))
+			         }
+
+
+			       return dest
+			     }
+
+
+
+			     func CooperGoToCapn(seg *capn.Segment, src *Cooper) CooperCapn {
+			       dest := AutoNewCooperCapn(seg)
+
+
+			       mylist1 := seg.NewInt64List(len(src.A))
+			       for i := range src.A {
+			          mylist1.Set(i, int64(src.A[i]))
+			       }
+			       dest.SetA(mylist1)
+
+			       return dest
+			     }
+			   `
+			*/
+			cv.So(ExtractString2String(in0), ShouldStartWithModuloWhiteSpace, expect0)
+
+		})
+	})
+}

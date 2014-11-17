@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -40,7 +41,6 @@ type Extractor struct {
 	LoadCode   map[string][]byte
 
 	compileDir *TempDir
-	readOnly   bool
 	outDir     string
 	srcFiles   []*SrcFile
 	overwrite  bool
@@ -83,6 +83,8 @@ type Field struct {
 	goName            string
 	goType            string
 	goTypePrefix      string
+	goTypeSeq         []string
+	capTypeSeq        []string
 	tagValue          string
 	isList            bool
 	capIdFromTag      int
@@ -241,13 +243,15 @@ func (x *Extractor) SettersToGo(goName string) string {
 	if myStruct == nil {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
-	//fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
+	fmt.Printf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
 	//for i, f := range myStruct.fld {
-	//fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
 	i := 0
 	for _, f := range myStruct.fld {
+		fmt.Printf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
 
-		if f.isList {
+		n := len(f.goTypeSeq)
+
+		if n >= 2 && f.goTypeSeq[0] == "[]" {
 			x.SettersToGoListHelper(&buf, myStruct, f)
 		} else {
 			switch f.goType {
@@ -268,15 +272,16 @@ func (x *Extractor) SettersToGo(goName string) string {
 
 func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Field) {
 
-	//fmt.Printf("debug: field f = %#v\n", f)
+	fmt.Printf("\n in SettersToGoListHelper(): debug: field f = %#v\n", f)
+	fmt.Printf("\n in SettersToGoListHelper(): debug: myStruct = %#v\n", myStruct)
 
 	// special case Text / string slices
-	if f.capType == "Text" {
+	if f.capType == "List(Text)" {
 		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.goCapGoName)
 		return
 	}
 	if !myStruct.firstNonTextListSeen {
-		fmt.Fprintf(buf, "\n    var n int\n")
+		fmt.Fprintf(buf, "\n  var n int\n")
 		myStruct.firstNonTextListSeen = true
 	}
 	// add a dereference (*) in from of the ToGo() invocation for go types that aren't pointers.
@@ -304,7 +309,7 @@ func ElemStarCapToGo(addStar string, f *Field) string {
 		return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
 	} else {
 		//fmt.Printf("\n non-intrinsic detected.\n")
-		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.capType, f.goName)
+		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.capTypeSeq[1], f.goName)
 	}
 }
 
@@ -347,7 +352,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
      mylist%d.Set(i, %s(src.%s[i]))
   }
   dest.Set%s(mylist%d)
-`, t.listNum, f.capType, f.goName, f.goName, t.listNum, f.goCapGoType, f.goName, f.goCapGoName, t.listNum)
+`, t.listNum, f.capTypeSeq[1], f.goName, f.goName, t.listNum, f.goCapGoType, f.goName, f.goCapGoName, t.listNum)
 
 			default:
 				// handle list of struct
@@ -369,7 +374,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		}
 		dest.Set%s(typedList)
 	}
-`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, addAmpersand, f.goCapGoName)
+`, f.goName, f.capTypeSeq[1], f.goName, f.capTypeSeq[1], f.goName, f.goName, f.goType, addAmpersand, f.goCapGoName)
 
 			} // end switch f.goType
 
@@ -459,14 +464,21 @@ func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 		sort.Sort(ByFinalOrder(s.fld))
 
 		for i, fld := range s.fld {
+
+			fmt.Printf("\n\n debug in WriteToSchema(), fld = %#v\n", fld)
+
 			SetSpaces(&spaces, s.longestField, len(fld.capname))
 
 			capType, already := x.goType2capType[fld.goType]
 			if !already {
+				fmt.Printf("\n\n debug: setting capType = '%s', instead of '%s', already = false\n", fld.capType, capType)
 				capType = fld.capType
+			} else {
+				fmt.Printf("\n\n debug: already = true, capType = '%s'\n", capType)
 			}
 
-			if fld.isList {
+			//			if fld.isList {
+			if false {
 				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %sList(%s); %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
@@ -474,7 +486,7 @@ func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 				}
 
 			} else {
-				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), capType, x.fieldSuffix)
+				m, err = fmt.Fprintf(w, "%s%s  %s@%d: %s%s; %s", x.fieldPrefix, fld.capname, spaces, fld.finalOrder, ExtraSpaces(i), fld.capType, x.fieldSuffix)
 				n += int64(m)
 				if err != nil {
 					return
@@ -535,9 +547,6 @@ func stripBackticks(s string) string {
 }
 
 func (x *Extractor) CopySourceFilesAddCapidTag() error {
-	if x.readOnly {
-		return nil
-	}
 
 	// run through struct fields, adding tags
 	for _, s := range x.srs {
@@ -560,9 +569,20 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 	}
 
 	if x.overwrite {
+		bk := x.compileDir.DirPath + "/bk/"
+		err := os.MkdirAll(bk, 0755)
+		if err != nil {
+			panic(err)
+		}
 		for _, s := range x.srcFiles {
 			if s.filename != "" {
-				err := exec.Command("/bin/cp", "-p", x.compileDir.DirPath+"/"+s.filename, s.filename).Run()
+				// make a backup
+				err := exec.Command("/bin/cp", "-p", s.filename, bk+s.filename).Run()
+				if err != nil {
+					panic(err)
+				}
+				// overwrite
+				err = exec.Command("/bin/cp", "-p", x.compileDir.DirPath+"/"+s.filename, s.filename).Run()
 				if err != nil {
 					panic(err)
 				}
@@ -656,6 +676,8 @@ func ExtractString2String(src string) string {
 	if err != nil {
 		panic(err)
 	}
+
+	//goon.Dump(x.srs)
 
 	// final write, this time accounting for capid tag ordering
 	var buf bytes.Buffer
@@ -787,7 +809,7 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 												// field without name: embedded/anonymous struct
 												typeName := fld.Type.(*ast.Ident).Name
 
-												err = x.GenerateStructField(typeName, "", typeName, fld, NotList, fld.Tag, YesEmbedded)
+												err = x.GenerateStructField(typeName, "", typeName, fld, NotList, fld.Tag, YesEmbedded, []string{typeName})
 												if err != nil {
 													return []byte{}, err
 												}
@@ -804,10 +826,10 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 														//fmt.Printf("\n\n    fld2 = %#v\n", fld2)
 														//goon.Dump(fld2)
 
-														typeNamePrefix, ident4 := GetTypeAsString(fld2.Type, "")
+														typeNamePrefix, ident4, gotypeseq := GetTypeAsString(fld2.Type, "", []string{})
 														//fmt.Printf("\n\n tnas = %#v, ident4 = %s\n", typeNamePrefix, ident4)
 
-														err = x.GenerateStructField(ident.Name, typeNamePrefix, ident4, fld2, IsSlice(typeNamePrefix), fld2.Tag, NotEmbedded)
+														err = x.GenerateStructField(ident.Name, typeNamePrefix, ident4, fld2, IsSlice(typeNamePrefix), fld2.Tag, NotEmbedded, gotypeseq)
 														if err != nil {
 															return []byte{}, err
 														}
@@ -888,8 +910,9 @@ func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	// we just want to preserve the mapping, without adding Capn suffix
 	//fmt.Printf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
 	//x.goType2capType[goNewTypeName] = goNewTypeName
-	isList := false
-	x.goType2capType[goNewTypeName] = x.GoTypeToCapnpType(goTargetTypeName, &isList)
+
+	capTypeSeq := []string{}
+	x.goType2capType[goNewTypeName] = x.GoTypeToCapnpType(0, []string{goTargetTypeName}, &capTypeSeq)
 }
 
 var regexCapname = regexp.MustCompile(`capname:[ \t]*\"([^\"]+)\"`)
@@ -970,7 +993,7 @@ const NotList = false
 const NotEmbedded = false
 const YesEmbedded = true
 
-func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, astfld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool) error {
+func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix string, goFieldTypeName string, astfld *ast.Field, isList bool, tag *ast.BasicLit, IsEmbedded bool, goTypeSeq []string) error {
 
 	if goFieldTypeName == "" {
 		return nil
@@ -985,7 +1008,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 		}
 	}
 
-	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded, astField: astfld}
+	curField := &Field{orderOfAppearance: x.fieldCount, embedded: IsEmbedded, astField: astfld, goTypeSeq: goTypeSeq, capTypeSeq: []string{}}
 
 	var tagValue string
 	loweredName := underToCamelCase(LowercaseCapnpFieldName(goFieldName))
@@ -1045,15 +1068,17 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 		return err
 	}
 
-	capnTypeDisplayed := x.GoTypeToCapnpType(goFieldTypeName, &isList)
+	capnTypeDisplayed := x.GoTypeToCapnpType(0, goTypeSeq, &curField.capTypeSeq)
 
-	//fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
+	fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
 
-	if isList {
-		fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
-	} else {
-		fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
-	}
+	/*
+		if isList {
+			fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
+		} else {
+			fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
+		}
+	*/
 
 	sz := len(loweredName)
 	if sz > x.curStruct.longestField {
@@ -1063,12 +1088,16 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	curField.capname = loweredName
 
 	curField.goCapGoName = UppercaseFirstLetter(loweredName)
-	curField.goCapGoType = x.CapnTypeToGoType(capnTypeDisplayed)
+	//curField.goCapGoType = x.CapnTypeToGoType(capnTypeDisplayed)
+	goCapGoTypeSeq := x.CapnTypeToGoType(0, curField.capTypeSeq, []string{})
+	curField.goCapGoType = goCapGoTypeSeq[len(goCapGoTypeSeq)-1]
 
 	curField.capType = capnTypeDisplayed
 	curField.goName = goFieldName
 	curField.goType = goFieldTypeName
-	curField.isList = isList
+	if len(curField.capTypeSeq) > 0 && curField.capTypeSeq[0] == "List" {
+		curField.isList = true
+	}
 	curField.tagValue = tagValue
 	curField.goTypePrefix = goFieldTypePrefix
 
@@ -1080,9 +1109,13 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	return nil
 }
 
-func (x *Extractor) CapnTypeToGoType(capType string) (goType string) {
+func (x *Extractor) CapnTypeToGoType(pos int, capTypeSeq []string, goTypeSeq []string) []string {
+	capType := capTypeSeq[pos]
 
+	var goType string
 	switch capType {
+	case "List":
+		return x.CapnTypeToGoType(pos+1, capTypeSeq, append(goTypeSeq, "[]"))
 	case "Text":
 		goType = "string"
 	case "Bool":
@@ -1108,17 +1141,39 @@ func (x *Extractor) CapnTypeToGoType(capType string) (goType string) {
 	case "Float64":
 		goType = "float64"
 	case "Data":
-		goType = "[]byte"
+		goTypeSeq = append(goTypeSeq, "[]")
+		goTypeSeq = append(goTypeSeq, "byte")
+		return goTypeSeq
 
 	default:
-
+		goType = capType
 	}
-	return
+	fmt.Printf("\n\n in CapnTypeToGoType, capType = '%s', goType='%s'\n", capType, goType)
+
+	goTypeSeq = append(goTypeSeq, goType)
+	return goTypeSeq
 }
 
-func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (capnTypeDisplayed string) {
+func (x *Extractor) GoTypeToCapnpType(pos int, goTypeSeq []string, capTypeSeq *[]string) (capnTypeDisplayed string) {
+
+	fmt.Printf("\n\n In GoTypeToCapnpType(pos=%d, goTypeSeq=%#v,  capTypeSeq=%#v)\n", pos, goTypeSeq, capTypeSeq)
+
+	n := len(goTypeSeq)
+	if pos >= n {
+		panic(fmt.Sprintf("pos too big: %v, vs n = %v,  goTypeSeq = %#v", pos, n, goTypeSeq))
+	}
+	goFieldTypeName := goTypeSeq[pos]
 
 	switch goFieldTypeName {
+	case "[]":
+		if pos == n-2 && goTypeSeq[pos+1] == "byte" {
+			capnTypeDisplayed = "Data"
+		} else {
+			*capTypeSeq = append(*capTypeSeq, "List")
+			capnTypeDisplayed = "List(" + x.GoTypeToCapnpType(pos+1, goTypeSeq, capTypeSeq) + ")"
+		}
+	case "*":
+		capnTypeDisplayed = x.GoTypeToCapnpType(pos+1, goTypeSeq, capTypeSeq)
 	case "string":
 		capnTypeDisplayed = "Text"
 	case "int":
@@ -1146,12 +1201,7 @@ func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (cap
 	case "float64":
 		capnTypeDisplayed = "Float64"
 	case "byte":
-		if *isList {
-			capnTypeDisplayed = "Data"
-			*isList = false
-		} else {
-			capnTypeDisplayed = "Uint8"
-		}
+		capnTypeDisplayed = "Uint8"
 	default:
 
 		alreadyKnownCapnType := x.goType2capType[goFieldTypeName]
@@ -1170,6 +1220,9 @@ func (x *Extractor) GoTypeToCapnpType(goFieldTypeName string, isList *bool) (cap
 				}
 		*/
 	}
+
+	*capTypeSeq = append(*capTypeSeq, capnTypeDisplayed)
+	fmt.Printf("\n\n Ending GoTypeToCapnpType(pos=%d, goTypeSeq=%#v), returning '%v'\n", pos, goTypeSeq, capnTypeDisplayed)
 	return
 }
 

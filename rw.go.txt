@@ -34,6 +34,8 @@ type RWTest struct {
 
     N2 []Nester2
     P2 []*Ptr2
+
+    A [][]int
 }
 
 func main() {
