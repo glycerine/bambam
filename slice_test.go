@@ -67,7 +67,7 @@ func TestSliceOfByteBecomesData(t *testing.T) {
 type s1 struct {
   MyData []byte
 }`
-			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myData  @0:   List(Uint8); } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myData  @0:   List(UInt8); } `)
 
 		})
 	})

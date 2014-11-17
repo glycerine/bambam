@@ -1019,6 +1019,11 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 		return nil
 	}
 
+	// skip protobuf side effects
+	if goFieldTypeName == "XXX_unrecognized" {
+		return nil
+	}
+
 	//fmt.Printf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', astfld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, astfld, tag)
 
 	// if we are ignoring private (lowercase first letter) fields, then stop here.
