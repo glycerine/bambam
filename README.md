@@ -114,7 +114,7 @@ When you run `bambam`, it will generate a modified copy of your go source files 
 
 These new versions include capid tags on all public fields of structs. You should inspect the copy of the source file in the output directory, and then replace your original source with the tagged version.  You can also manually add capid tags to fields, if you need to manually specify a field number (e.g. you are matching an pre-existing capnproto definition).
 
-If you are feeling especially bold, `bambam -OVERWRITE my.go` will replace my.go with the capid tagged version. For safety, only do this on backed and version controlled source files.
+If you are feeling especially bold, `bambam -OVERWRITE my.go` will replace my.go with the capid tagged version. For safety, only do this on backed-up and version controlled source files.
 
 By default only public fields (with Captial first letter in their name) are tagged. The -X flag ignores the public/private distinction, and tags all fields.
 
