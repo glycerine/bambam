@@ -44,6 +44,7 @@ type in1 struct {
 	})
 }
 
+/* unclear if we really want this or not
 func TestNonStructTypeDefsAreIgnored(t *testing.T) {
 
 	cv.Convey("Given a go type definition 'type SyncMsg int32' that isn't a struct definition,", t, func() {
@@ -61,3 +62,4 @@ type SyncMsg int32
 		})
 	})
 }
+*/

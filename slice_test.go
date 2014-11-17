@@ -67,7 +67,7 @@ func TestSliceOfByteBecomesData(t *testing.T) {
 type s1 struct {
   MyData []byte
 }`
-			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myData  @0:   Data; } `)
+			cv.So(ExtractString2String(ex0), ShouldStartWithModuloWhiteSpace, `struct S1Capn { myData  @0:   List(Uint8); } `)
 
 		})
 	})
@@ -168,10 +168,136 @@ type Mini struct {
   A int64
 }
 type Cooper struct {
+  Downey      []Mini
   Formation [][]Mini
 }`
 
 			expect0 := `
+struct CooperCapn { 
+  downey     @0:   List(MiniCapn);
+  formation  @1:   List(List(MiniCapn));
+} 
+
+struct MiniCapn { 
+  a  @0:   Int64; 
+} 
+  
+  
+  func (s *Cooper) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	CooperGoToCapn(seg, s)
+    	seg.WriteTo(w)
+  }
+   
+  
+   
+  func (s *Cooper) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := testpkg.ReadRootCooperCapn(capMsg)
+        CooperCapnToGo(z, s)
+  }
+  
+  
+  
+  func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper { 
+    if dest == nil { 
+      dest = &Cooper{} 
+    }
+  
+    var n int
+  
+      // Downey
+  	n = src.Downey().Len()
+  	dest.Downey = make([]Mini, n)
+  	for i := 0; i < n; i++ {
+          dest.Downey[i] = *MiniCapnToGo(src.Downey().At(i), nil)
+      }
+  
+  
+      // Formation
+  	n = src.Formation().Len()
+  	dest.Formation = make([][]Mini, n)
+  	for i := 0; i < n; i++ {
+          dest.Formation[i] = *ListToGo(src.Formation().At(i), nil)
+      }
+  
+  
+    return dest
+  } 
+  
+  
+  
+  func CooperGoToCapn(seg *capn.Segment, src *Cooper) CooperCapn { 
+    dest := AutoNewCooperCapn(seg)
+  
+    // Downey -> MiniCapn (go slice to capn list)
+    if len(src.Downey) > 0 {
+  		typedList := NewMiniCapnList(seg, len(src.Downey))
+  		plist := capn.PointerList(typedList)
+  		i := 0
+  		for _, ele := range src.Downey {
+  			plist.Set(i, capn.Object(MiniGoToCapn(seg, &ele)))
+  			i++
+  		}
+  		dest.SetDowney(typedList)
+  	}
+  
+    // Formation -> List (go slice to capn list)
+    if len(src.Formation) > 0 {
+  		typedList := NewListList(seg, len(src.Formation))
+  		plist := capn.PointerList(typedList)
+  		i := 0
+  		for _, ele := range src.Formation {
+  			plist.Set(i, capn.Object(MiniGoToCapn(seg, &ele)))
+  			i++
+  		}
+  		dest.SetFormation(typedList)
+  	}
+  
+    return dest
+  } 
+  
+  
+  
+  func (s *Mini) Save(w io.Writer) {
+    	seg := capn.NewBuffer(nil)
+    	MiniGoToCapn(seg, s)
+    	seg.WriteTo(w)
+  }
+   
+  
+   
+  func (s *Mini) Load(r io.Reader) {
+    	capMsg, err := capn.ReadFromStream(r, nil)
+    	if err != nil {
+    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    	}
+    	z := testpkg.ReadRootMiniCapn(capMsg)
+        MiniCapnToGo(z, s)
+  }
+  
+  
+  
+  func MiniCapnToGo(src MiniCapn, dest *Mini) *Mini { 
+    if dest == nil { 
+      dest = &Mini{} 
+    }
+    dest.A = int64(src.A())
+  
+    return dest
+  } 
+  
+  
+  
+  func MiniGoToCapn(seg *capn.Segment, src *Mini) MiniCapn { 
+    dest := AutoNewMiniCapn(seg)
+    dest.SetA(src.A)
+  
+    return dest
+  } 
 `
 			cv.So(ExtractString2String(in0), ShouldMatchModuloWhiteSpace, expect0)
 
