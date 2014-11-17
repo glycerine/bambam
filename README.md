@@ -67,7 +67,7 @@ import (
 // your go structs, the capid tags let your schema
 // stay backwards compatible with prior serializations.
 //
-type RWTest struct {
+type MyStruct struct {
 	Hello    []string  `capid:"0"`
 	World    []int     `capid:"1"`
 }
