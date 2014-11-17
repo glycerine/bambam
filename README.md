@@ -10,6 +10,8 @@ Given a set of golang (Go) source files, bambam will generate a [capnproto](http
 prereqs
 -------
 
+You'll need a recent (up-to-date) version of go-capnproto. If you installed go-capnproto before, you'll want to update it [>= f9f239fc7f5ad9611cf4e88b10080a4b47c3951d  / 16 Nov 2014].
+
 [Capnproto](http://kentonv.github.io/capnproto/) and [go-capnproto](https://github.com/glycerine/go-capnproto) should both be installed and on your PATH.
 
 to install
