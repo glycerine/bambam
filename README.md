@@ -58,9 +58,18 @@ import (
     "bytes"
 )
 
-type MyStruct struct {
-	Hello    []string
-	World    []int
+//
+// By default bambam will add the `capid` tags
+// to a copy of your source in the output directory.
+// Use bambam -OVERWRITE to modify files directly in-place.
+// The capid tags control the @0, @1, field numbering 
+// in the generated capnproto schema. If you change
+// your go structs, the capid tags let your schema
+// stay backwards compatible with prior serializations.
+//
+type RWTest struct {
+	Hello    []string  `capid:"0"`
+	World    []int     `capid:"1"`
 }
 
 func main() {
