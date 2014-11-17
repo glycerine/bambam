@@ -14,8 +14,17 @@ prereqs
 
 to install
 --------
+~~~
+# be sure go-capnproto and capnpc are installed first.
 
-`go get -t github.com/glycerine/bambam`  # the -t pulls in the test dependencies.
+$ go get -t github.com/glycerine/bambam  # the -t pulls in the test dependencies.
+
+# ignore the initial compile error about 'undefined: LASTGITCOMMITHASH'. `make` will fix that.
+$ cd $GOPATH/src/github.com/glycerine/bambam
+$ make  # runs tests, build if all successful
+$ go install
+~~~
+
 
 use
 ---------

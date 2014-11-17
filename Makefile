@@ -6,6 +6,7 @@ build:
 	/bin/echo "var LASTGITCOMMITHASH string" >> gitcommit.go
 	/bin/echo "func init() { LASTGITCOMMITHASH = \"$(shell git rev-parse HEAD)\" }" >> gitcommit.go
 	go build
+	go install
 
 full:
 	rm -f translateCapn.go schema.capnp.go && go test -v && go build && go install
