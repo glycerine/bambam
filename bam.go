@@ -43,7 +43,11 @@ type Extractor struct {
 	readOnly   bool
 	outDir     string
 	srcFiles   []*SrcFile
-	PubYXZ     int `capid:"0"`
+
+	// fields for testing capid tagging
+	PubABC int `capid:"1"`
+	PubYXZ int `capid:"0"`
+	PubDEF int
 }
 
 func NewExtractor() *Extractor {
@@ -72,8 +76,8 @@ func (x *Extractor) Cleanup() {
 
 type Field struct {
 	capname           string
-	GoCapGoName       string // Uppercased-first-letter of capname, as generated in go bindings.
-	GoCapGoType       string // int64 when goType is int, because capType is Int64.
+	goCapGoName       string // Uppercased-first-letter of capname, as generated in go bindings.
+	goCapGoType       string // int64 when goType is int, because capType is Int64.
 	capType           string
 	goName            string
 	goType            string
@@ -99,9 +103,9 @@ type Struct struct {
 }
 
 type SrcFile struct {
-	Fname   string
-	Fset    *token.FileSet
-	AstFile *ast.File
+	filename string
+	fset     *token.FileSet
+	astFile  *ast.File
 }
 
 func (s *Struct) computeFinalOrder() {
@@ -247,13 +251,13 @@ func (x *Extractor) SettersToGo(goName string) string {
 		} else {
 			switch f.goType {
 			case "int":
-				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.GoCapGoName)
+				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.goCapGoName)
 			case "int64":
-				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.GoCapGoName)
+				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.goCapGoName)
 			case "float64":
-				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.GoCapGoName)
+				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.goCapGoName)
 			case "string":
-				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.GoCapGoName)
+				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
 			}
 		}
 		i++
@@ -267,7 +271,7 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 
 	// special case Text / string slices
 	if f.capType == "Text" {
-		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.GoCapGoName)
+		fmt.Fprintf(buf, "  dest.%s = src.%s().ToArray()\n", f.goName, f.goCapGoName)
 		return
 	}
 	if !myStruct.firstNonTextListSeen {
@@ -288,7 +292,7 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
         dest.%s[i] = %s
     }
 
-`, f.goName, f.GoCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, ElemStarCapToGo(addStar, f))
+`, f.goName, f.goCapGoName, f.goName, f.goTypePrefix, f.goType, f.goName, ElemStarCapToGo(addStar, f))
 
 }
 
@@ -342,7 +346,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
      mylist%d.Set(i, %s(src.%s[i]))
   }
   dest.Set%s(mylist%d)
-`, t.listNum, f.capType, f.goName, f.goName, t.listNum, f.GoCapGoType, f.goName, f.GoCapGoName, t.listNum)
+`, t.listNum, f.capType, f.goName, f.goName, t.listNum, f.goCapGoType, f.goName, f.goCapGoName, t.listNum)
 
 			default:
 				// handle list of struct
@@ -364,7 +368,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		}
 		dest.Set%s(typedList)
 	}
-`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, addAmpersand, f.GoCapGoName)
+`, f.goName, f.capType, f.goName, f.capType, f.goName, f.goName, f.goType, addAmpersand, f.goCapGoName)
 
 			} // end switch f.goType
 
@@ -372,13 +376,13 @@ func (x *Extractor) SettersToCapn(goName string) string {
 
 			switch f.goType {
 			case "int":
-				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.GoCapGoName, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.goCapGoName, f.goName)
 			case "int64":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			case "float64":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			case "string":
-				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.GoCapGoName, f.goName)
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			}
 		}
 	}
@@ -546,8 +550,8 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 
 	// run through files, printing
 	for _, s := range x.srcFiles {
-		if s.Fname != "" {
-			err := x.PrettyPrint(s.Fset, s.AstFile, x.compileDir.DirPath+"/"+s.Fname)
+		if s.filename != "" {
+			err := x.PrettyPrint(s.fset, s.astFile, x.compileDir.DirPath+"/"+s.filename)
 			if err != nil {
 				return err
 			}
@@ -701,7 +705,7 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 	}
 
 	if fname != "" {
-		x.srcFiles = append(x.srcFiles, &SrcFile{Fname: fname, Fset: fset, AstFile: f})
+		x.srcFiles = append(x.srcFiles, &SrcFile{filename: fname, fset: fset, astFile: f})
 	}
 
 	//	fmt.Printf("parsed output f.Decls is:\n")
@@ -1044,8 +1048,8 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 
 	curField.capname = loweredName
 
-	curField.GoCapGoName = UppercaseFirstLetter(loweredName)
-	curField.GoCapGoType = x.CapnTypeToGoType(capnTypeDisplayed)
+	curField.goCapGoName = UppercaseFirstLetter(loweredName)
+	curField.goCapGoType = x.CapnTypeToGoType(capnTypeDisplayed)
 
 	curField.capType = capnTypeDisplayed
 	curField.goName = goFieldName
