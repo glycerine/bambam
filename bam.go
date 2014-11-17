@@ -538,9 +538,9 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 	for _, s := range x.srs {
 		for _, f := range s.fld {
 
-			fmt.Printf("\n\n\n ********** before  f.astField.Tag = %#v\n", f.astField.Tag)
+			//fmt.Printf("\n\n\n ********** before  f.astField.Tag = %#v\n", f.astField.Tag)
 			f.astField.Tag.Value = x.GenCapidTag(f)
-			fmt.Printf("\n\n\n ********** AFTER:  f.astField.Tag = %#v\n", f.astField.Tag)
+			//fmt.Printf("\n\n\n ********** AFTER:  f.astField.Tag = %#v\n", f.astField.Tag)
 		}
 	}
 
