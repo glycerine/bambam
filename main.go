@@ -17,6 +17,7 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
+	fmt.Fprintf(os.Stderr, "     #   -OVERWRITE modify .go files in-place, adding capid tags.\n")
 	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must be last, after options.\n")
 	fmt.Fprintf(os.Stderr, "     #\n")
 	fmt.Fprintf(os.Stderr, "     # [1] https://github.com/glycerine/go-capnproto \n")
@@ -43,6 +44,7 @@ func MainArgs(args []string) {
 	pkg := flag.String("p", "main", "specify package for generated code")
 	privs := flag.Bool("X", false, "export private as well as public struct fields")
 	readonly := flag.Bool("readonly", false, "don't add `capid` tags to public struct fields.")
+	overwrite := flag.Bool("OVERWRITE", false, "replace named .go files with capid tagged versions.")
 	flag.Parse()
 
 	if verrequest != nil && *verrequest {
@@ -89,6 +91,9 @@ func MainArgs(args []string) {
 	x.outDir = *outdir
 	if privs != nil {
 		x.extractPrivate = *privs
+	}
+	if overwrite != nil {
+		x.overwrite = *overwrite
 	}
 
 	for _, inFile := range inputFiles {

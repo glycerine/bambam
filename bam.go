@@ -43,6 +43,7 @@ type Extractor struct {
 	readOnly   bool
 	outDir     string
 	srcFiles   []*SrcFile
+	overwrite  bool
 
 	// fields for testing capid tagging
 	PubABC int `capid:"1"`
@@ -557,6 +558,19 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 			}
 		}
 	}
+
+	if x.overwrite {
+		for _, s := range x.srcFiles {
+			if s.filename != "" {
+				err := exec.Command("/bin/cp", "-p", x.compileDir.DirPath+"/"+s.filename, s.filename).Run()
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+
+	}
+
 	return nil
 }
 
