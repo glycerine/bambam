@@ -1058,12 +1058,20 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 			match2 := regexCapid.FindStringSubmatch(tag.Value)
 			if match2 != nil {
 				if len(match2) == 2 {
+					if match2[1] == "skip" {
+						fmt.Printf("skipping field '%s' marked with capid:\"skip\"", loweredName)
+						return nil
+					}
 					//fmt.Printf("matched, applying capid tag '%s' for field '%s'\n", match2[1], loweredName)
 					n, err := strconv.Atoi(match2[1])
 					if err != nil {
 						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': could not convert to number, error: '%s'`, match2[1], goFieldName, x.curStruct.goName, err)
 						panic(err)
 						return err
+					}
+					if n < 0 {
+						fmt.Printf("skipping field '%s' marked with negative capid:\"%d\"", loweredName, n)
+						return nil
 					}
 					fld, already := x.curStruct.capIdMap[n]
 					if already {
