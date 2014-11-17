@@ -1257,7 +1257,7 @@ func (x *Extractor) g2c(goFieldTypeName string) string {
 	case "float64":
 		return "Float64"
 	case "byte":
-		return "Uint8"
+		return "UInt8"
 	}
 
 	var capnTypeDisplayed string
