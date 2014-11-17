@@ -38,6 +38,7 @@ use: bambam -o outdir -p package myGoSourceFile.go myGoSourceFile2.go ...
      #   -p="main" specifies the package header to write (e.g. main, mypkg).
      #   -X exports private fields of Go structs. Default only maps public fields.
      #   -version   shows build version with git commit hash
+     #   -OVERWRITE modify .go files in-place, adding capid tags (write to -o dir by default).
      # required: at least one .go source file for struct definitions. Must be last, after options.
      #
      # [1] https://github.com/glycerine/go-capnproto 
