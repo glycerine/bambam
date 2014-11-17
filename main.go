@@ -15,7 +15,6 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     # options:\n")
 	fmt.Fprintf(os.Stderr, "     #   -o=\"odir\" specifies the directory to write to (created if need be).\n")
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
-	fmt.Fprintf(os.Stderr, "     #   -readonly  don't add `capid` tags to public struct fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
 	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
 	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must be last, after options.\n")
