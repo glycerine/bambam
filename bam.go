@@ -106,6 +106,8 @@ type Field struct {
 	canonGoTypeListToSliceFunc string
 	canonGoTypeSliceToListFunc string
 	singleCapListType          string
+	baseIsIntrinsic            bool
+	newListExpression          string
 }
 
 type Struct struct {
@@ -1490,11 +1492,14 @@ func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTyp
 	}
 
 	if IsIntrinsicGoType(last(goTypeSeq)) {
-		capTypeThenList = "capn." + capBaseType
-		f.singleCapListType = fmt.Sprintf("capn.%s", capBaseType)
+		f.baseIsIntrinsic = true
+		capTypeThenList = capBaseType + "List"
+		f.singleCapListType = fmt.Sprintf("capn.%sList", capBaseType)
+		f.newListExpression = fmt.Sprintf("seg.New%sList(len(m))", capBaseType)
 	} else {
 		capTypeThenList = capBaseType + strings.Join(capListTypeSeq[:n-1], "")
 		f.singleCapListType = fmt.Sprintf("%s_List", capBaseType)
+		f.newListExpression = fmt.Sprintf("New%s(seg, len(m))", capTypeThenList)
 	}
 	VPrintf("\n capTypeThenList is set to : '%s'\n\n", capTypeThenList)
 
@@ -1504,30 +1509,46 @@ func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTyp
 	//upperGoBaseType := UppercaseFirstLetter(goBaseType)
 
 	c2g, _ := x.c2g(capBaseType)
+
+	f.canonGoType = canonGoType
+	f.canonGoTypeListToSliceFunc = fmt.Sprintf("%sTo%s", capTypeThenList, canonGoType)
+	f.canonGoTypeSliceToListFunc = fmt.Sprintf("%sTo%s", canonGoType, capTypeThenList)
+
 	x.SliceToListCode[canonGoType] = []byte(fmt.Sprintf(`
 func %sTo%s(seg *capn.Segment, m %s) %s {
-	lst := seg.New%s(len(m))
+	lst := %s
 	for i := range m {
-		lst.Set(i, %s(m[i]))
+		lst.Set(i, %s)
 	}
 	return lst
 }
-`, canonGoType, capTypeThenList, collapGoType, f.singleCapListType, capTypeThenList, c2g))
+`, canonGoType, capTypeThenList, collapGoType, f.singleCapListType, f.newListExpression, x.SliceToListSetRHS(f.baseIsIntrinsic, goBaseType, c2g)))
 
 	x.ListToSliceCode[canonGoType] = []byte(fmt.Sprintf(`
 func %sTo%s(p %s) %s {
 	v := make(%s, p.Len())
 	for i := range v {
-		v[i] = %s(p.At(i))
+        %s
 	}
 	return v
 } 
-`, capTypeThenList, canonGoType, f.singleCapListType, collapGoType, collapGoType, goBaseType))
+`, capTypeThenList, canonGoType, f.singleCapListType, collapGoType, collapGoType, x.ListToSliceSetLHS_RHS(f.baseIsIntrinsic, capBaseType, goBaseType)))
 
-	if f != nil {
-		f.canonGoType = canonGoType
-		f.canonGoTypeListToSliceFunc = fmt.Sprintf("%sTo%s", capTypeThenList, canonGoType)
-		f.canonGoTypeSliceToListFunc = fmt.Sprintf("%sTo%s", canonGoType, capTypeThenList)
-		VPrintf("\n\n GenerateListHelpers done for field '%#v'\n\n", f)
+	VPrintf("\n\n GenerateListHelpers done for field '%#v'\n\n", f)
+}
+
+func (x *Extractor) SliceToListSetRHS(baseIsIntrinsic bool, goName string, c2g string) string {
+	if baseIsIntrinsic {
+		return fmt.Sprintf("%s(m[i])", c2g)
+	} else {
+		return fmt.Sprintf("%sGoToCapn(seg, &m[i])", goName)
+	}
+}
+
+func (x *Extractor) ListToSliceSetLHS_RHS(baseIsIntrinsic bool, capName string, goBaseType string) string {
+	if baseIsIntrinsic {
+		return fmt.Sprintf("v[i] = %s(p.At(i))", goBaseType) // e.g. int64
+	} else {
+		return fmt.Sprintf("%sToGo(p.At(i), &v[i])", capName)
 	}
 }

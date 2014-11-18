@@ -16,7 +16,8 @@ func use() {
 	fmt.Fprintf(os.Stderr, "     #   -o=\"odir\" specifies the directory to write to (created if need be).\n")
 	fmt.Fprintf(os.Stderr, "     #   -p=\"main\" specifies the package header to write (e.g. main, mypkg).\n")
 	fmt.Fprintf(os.Stderr, "     #   -X exports private fields of Go structs. Default only maps public fields.\n")
-	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash\n")
+	fmt.Fprintf(os.Stderr, "     #   -version   shows build version with git commit hash.\n")
+	fmt.Fprintf(os.Stderr, "     #   -debug     print lots of debug info as we process.\n")
 	fmt.Fprintf(os.Stderr, "     #   -OVERWRITE modify .go files in-place, adding capid tags (write to -o dir by default).\n")
 	fmt.Fprintf(os.Stderr, "     # required: at least one .go source file for struct definitions. Must be last, after options.\n")
 	fmt.Fprintf(os.Stderr, "     #\n")
@@ -39,12 +40,17 @@ func MainArgs(args []string) {
 		use()
 	}
 
+	debug := flag.Bool("debug", false, "print lots of debug info as we process.")
 	verrequest := flag.Bool("version", false, "request git commit hash used to build this bambam")
 	outdir := flag.String("o", "odir", "specify output directory")
 	pkg := flag.String("p", "main", "specify package for generated code")
 	privs := flag.Bool("X", false, "export private as well as public struct fields")
 	overwrite := flag.Bool("OVERWRITE", false, "replace named .go files with capid tagged versions.")
 	flag.Parse()
+
+	if debug != nil {
+		Verbose = *debug
+	}
 
 	if verrequest != nil && *verrequest {
 		fmt.Printf("%s\n", LASTGITCOMMITHASH)
