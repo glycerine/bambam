@@ -10,7 +10,7 @@ const (
 	success               = ""
 	needExactValues       = "This assertion requires exactly %d comparison values (you provided %d)."
 	shouldMatchModulo     = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d)"
-	shouldContainModuloWS = "Expected expected string '%s'\n       to contain string '%s'\n (ignoring whitespace)\n (but they did not!)"
+	shouldContainModuloWS = "Expected expected string '%s'\n       to contain string '%s'\n (ignoring whitespace)\n (but it did not!)"
 	shouldBothBeStrings   = "Both arguments to this assertion must be strings (you provided %v and %v)."
 )
 
@@ -266,5 +266,5 @@ func ShouldContainModuloWhiteSpace(haystack interface{}, expectedNeedle ...inter
 		return success
 	}
 
-	return fmt.Sprintf(shouldContainModuloWS, h, n)
+	return fmt.Sprintf(shouldContainModuloWS, value, expecNeedle)
 }

@@ -40,6 +40,10 @@ type Extractor struct {
 	SaveCode   map[string][]byte
 	LoadCode   map[string][]byte
 
+	// key is CanonGoType(goTypeSeq)
+	SliceToListCode map[string][]byte
+	ListToSliceCode map[string][]byte
+
 	compileDir *TempDir
 	outDir     string
 	srcFiles   []*SrcFile
@@ -59,13 +63,15 @@ func NewExtractor() *Extractor {
 		capType2goType:      make(map[string]string),
 
 		// key is goTypeName
-		ToGoCode:   make(map[string][]byte),
-		ToCapnCode: make(map[string][]byte),
-		SaveCode:   make(map[string][]byte),
-		LoadCode:   make(map[string][]byte),
-		srs:        make(map[string]*Struct),
-		compileDir: NewTempDir(),
-		srcFiles:   make([]*SrcFile, 0),
+		ToGoCode:        make(map[string][]byte),
+		ToCapnCode:      make(map[string][]byte),
+		SaveCode:        make(map[string][]byte),
+		LoadCode:        make(map[string][]byte),
+		srs:             make(map[string]*Struct),
+		compileDir:      NewTempDir(),
+		srcFiles:        make([]*SrcFile, 0),
+		SliceToListCode: make(map[string][]byte),
+		ListToSliceCode: make(map[string][]byte),
 	}
 }
 
@@ -677,6 +683,39 @@ func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
 
 	} // end second loop over structs for translating methods.
 
+	// from x.GenerateListHelpers(capListTypeSeq, goTypeSeq)
+	for _, code := range x.SliceToListCode {
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(code)
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+	}
+
+	for _, code := range x.ListToSliceCode {
+
+		m, err = fmt.Fprintf(w, "\n\n")
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+		m, err = w.Write(code)
+		n += int64(m)
+		if err != nil {
+			return
+		}
+
+	}
+
 	return
 }
 
@@ -1213,6 +1252,13 @@ func (x *Extractor) GoTypeToCapnpType(goTypeSeq []string) (capTypeSeq []string, 
 		capTypeSeq[i] = x.g2c(t)
 	}
 
+	// now that the capTypeSeq is completely generated, check for lists
+	for _, ty := range capTypeSeq {
+		if ty == "List" {
+			x.GenerateListHelpers(capTypeSeq, goTypeSeq)
+		}
+	}
+
 	return capTypeSeq, x.assembleCapType(capTypeSeq)
 }
 
@@ -1417,4 +1463,75 @@ func IsIntrinsicGoType(goFieldTypeName string) bool {
 		return false
 	}
 	return false
+}
+
+func CanonGoType(goTypeSeq []string) string {
+	var r string
+	for _, s := range goTypeSeq {
+		if s == "[]" {
+			r += "Slice"
+		} else {
+			r += s
+		}
+	}
+	return r
+}
+
+func CanonCapType(capTypeSeq []string) string {
+	var r string
+	for _, s := range capTypeSeq {
+		r += s
+	}
+	return r
+}
+
+func (x *Extractor) GenerateListHelpers(capListTypeSeq []string, goTypeSeq []string) {
+
+	canonGoType := CanonGoType(goTypeSeq)
+	//canonCapType := CanonCapType(capListTypeSeq)
+
+	// already done before?
+	_, already := x.SliceToListCode[canonGoType]
+	_, already2 := x.ListToSliceCode[canonGoType]
+	if already {
+		if !already2 {
+			panic("why one and not the other?!")
+		}
+		return
+	}
+
+	fmt.Printf("\n\n debug GenerateListHelper: called with capListTypeSeq = '%#v'\n", capListTypeSeq)
+
+	n := len(capListTypeSeq)
+	capBaseType := capListTypeSeq[n-1]
+	capTypeThenList := strings.Join(capListTypeSeq, "")
+	if n > 1 {
+		capTypeThenList = capBaseType + strings.Join(capListTypeSeq[:n-1], "")
+	}
+
+	collapGoType := strings.Join(goTypeSeq, "")
+	m := len(goTypeSeq)
+	goBaseType := goTypeSeq[m-1]
+
+	c2g, _ := x.c2g(capBaseType)
+	x.SliceToListCode[canonGoType] = []byte(fmt.Sprintf(`
+func %sTo%s(seg *capn.Segment, m %s) capn.%s {
+	lst := seg.New%s(len(m))
+	for i := range m {
+		lst.Set(i, %s(m[i]))
+	}
+	return lst
+}
+`, canonGoType, capTypeThenList, collapGoType, capTypeThenList, capTypeThenList, c2g))
+
+	x.ListToSliceCode[canonGoType] = []byte(fmt.Sprintf(`
+func %sTo%s(p capn.%s) %s {
+	v := make(%s, p.Len())
+	for i := range v {
+		v[i] = %s(p.At(i))
+	}
+	return v
+} 
+`, capTypeThenList, canonGoType, capTypeThenList, collapGoType, collapGoType, goBaseType))
+
 }
