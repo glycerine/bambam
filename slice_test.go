@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	cv "github.com/smartystreets/goconvey/convey"
@@ -34,7 +33,7 @@ type s1 struct {
 }`
 			out0 := ExtractString2String(ex0)
 
-			fmt.Printf("out0: '%s'\n", out0)
+			VPrintf("out0: '%s'\n", out0)
 
 			cv.So(out0, ShouldStartWithModuloWhiteSpace, `struct BbbCapn { } struct S1Capn { myBees  @0:   List(BbbCapn); } `)
 
