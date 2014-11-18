@@ -95,13 +95,16 @@ type Field struct {
 	capTypeSeq     []string
 	goCapGoTypeSeq []string
 
-	tagValue          string
-	isList            bool
-	capIdFromTag      int
-	orderOfAppearance int
-	finalOrder        int
-	embedded          bool
-	astField          *ast.Field
+	tagValue                   string
+	isList                     bool
+	capIdFromTag               int
+	orderOfAppearance          int
+	finalOrder                 int
+	embedded                   bool
+	astField                   *ast.Field
+	canonGoType                string // key into SliceToListCode and ListToSliceCode
+	canonGoTypeListToSliceFunc string
+	canonGoTypeSliceToListFunc string
 }
 
 type Struct struct {
@@ -315,10 +318,16 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 func (x *Extractor) ElemStarCapToGo(addStar string, f *Field) string {
 	f.goToCapFunc = x.goToCapTypeFunction(f.capTypeSeq)
 
-	fmt.Printf("f = %#v   addStar = '%v'\n", f, addStar)
+	fmt.Printf("f = %#v   addStar = '%v'    f.goToCapFunc = '%s'\n", f, addStar, f.goToCapFunc)
 	if IsIntrinsicGoType(f.goType) {
 		fmt.Printf("\n intrinsic detected.\n")
-		return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
+
+		// special case the lists
+		if strings.HasPrefix(f.canonGoType, "Slice") {
+			return fmt.Sprintf("%s(src.%s().At(i))", f.canonGoTypeListToSliceFunc, f.goName)
+		} else {
+			return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
+		}
 	} else {
 		fmt.Printf("\n non-intrinsic detected. f.goType = '%v'\n", f.goType)
 		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.goToCapFunc, f.goName)
@@ -354,28 +363,45 @@ func last(slc []string) string {
 	return slc[n-1]
 }
 
+func IsDoubleList(f *Field) bool {
+	if len(f.capTypeSeq) > 2 {
+		if f.capTypeSeq[0] == f.capTypeSeq[1] && f.capTypeSeq[1] == "List" {
+			return true
+		}
+	}
+	return false
+}
+
 func (x *Extractor) SettersToCapn(goName string) string {
 	var buf bytes.Buffer
 	t := x.srs[goName]
 	if t == nil {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
-	//fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", t)
-	//for i, f := range t.fld {
-	for _, f := range t.fld {
-		//fmt.Printf("\n\n SettersToCapn running on t.fld[%d] = %#v\n", i, f)
+	fmt.Printf("\n\n SettersToCapn running on myStruct = %#v\n", t)
+	for i, f := range t.fld {
+		//for _, f := range t.fld {
+		fmt.Printf("\n\n SettersToCapn running on t.fld[%d] = %#v\n", i, f)
 
 		if f.isList {
 			t.listNum++
-			switch f.goType {
-			case "int":
-				fallthrough
-			case "float64":
-				fallthrough
-			case "string":
-				fallthrough
-			case "int64":
-				fmt.Fprintf(&buf, `
+			if IsIntrinsicGoType(f.goType) {
+				fmt.Printf("\n intrinsic detected in SettersToCapn.\n")
+
+				if IsDoubleList(f) {
+
+					fmt.Fprintf(&buf, `
+
+  mylist%d := seg.NewPointerList(len(src.%s))
+  for i := range src.%s {
+     mylist%d.Set(i, capn.Object(%s(seg, src.%s[i])))
+  }
+  dest.Set%s(mylist%d)
+`, t.listNum, f.goName, f.goName, t.listNum, f.canonGoTypeSliceToListFunc, f.goName, f.goCapGoName, t.listNum)
+
+				} else {
+
+					fmt.Fprintf(&buf, `
 
   mylist%d := seg.New%sList(len(src.%s))
   for i := range src.%s {
@@ -383,9 +409,8 @@ func (x *Extractor) SettersToCapn(goName string) string {
   }
   dest.Set%s(mylist%d)
 `, t.listNum, last(f.capTypeSeq), f.goName, f.goName, t.listNum, last(f.goCapGoTypeSeq), f.goName, f.goCapGoName, t.listNum)
-				//`, t.listNum, f.goToCapFunc, f.goName, f.goName, t.listNum, f.goCapGoType, f.goName, f.goCapGoName, t.listNum)
-
-			default:
+				}
+			} else {
 				// handle list of struct
 				fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
 				addAmpersand := "&"
@@ -967,7 +992,7 @@ func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	//x.goType2capTypeCache[goNewTypeName] = goNewTypeName
 
 	var capTypeSeq []string
-	capTypeSeq, x.goType2capTypeCache[goNewTypeName] = x.GoTypeToCapnpType([]string{goTargetTypeName})
+	capTypeSeq, x.goType2capTypeCache[goNewTypeName] = x.GoTypeToCapnpType(nil, []string{goTargetTypeName})
 	fmt.Printf("\n\n 888 noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'   x.goType2capTypeCache[goNewTypeName]: '%v'  capTypeSeq: '%v'\n", goNewTypeName, goTargetTypeName, x.goType2capTypeCache[goNewTypeName], capTypeSeq)
 }
 
@@ -1141,7 +1166,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	}
 
 	var capnTypeDisplayed string
-	curField.capTypeSeq, capnTypeDisplayed = x.GoTypeToCapnpType(goTypeSeq)
+	curField.capTypeSeq, capnTypeDisplayed = x.GoTypeToCapnpType(curField, goTypeSeq)
 
 	fmt.Printf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
 
@@ -1243,7 +1268,7 @@ func (x *Extractor) c2g(capType string) (goType string, special bool) {
 	}
 }
 
-func (x *Extractor) GoTypeToCapnpType(goTypeSeq []string) (capTypeSeq []string, capnTypeDisplayed string) {
+func (x *Extractor) GoTypeToCapnpType(curField *Field, goTypeSeq []string) (capTypeSeq []string, capnTypeDisplayed string) {
 
 	fmt.Printf("\n\n In GoTypeToCapnpType() : goTypeSeq=%#v)\n", goTypeSeq)
 
@@ -1253,9 +1278,12 @@ func (x *Extractor) GoTypeToCapnpType(goTypeSeq []string) (capTypeSeq []string, 
 	}
 
 	// now that the capTypeSeq is completely generated, check for lists
-	for _, ty := range capTypeSeq {
-		if ty == "List" {
-			x.GenerateListHelpers(capTypeSeq, goTypeSeq)
+	// currently only do List(primitive or struct type); no List(List(prim)) or List(List(struct))
+	n := len(capTypeSeq)
+	for i, ty := range capTypeSeq {
+		if ty == "List" && i == n-2 {
+			fmt.Printf("\n\n generating List helpers at i=%d, capTypeSeq = '%#v\n", i, capTypeSeq)
+			x.GenerateListHelpers(curField, capTypeSeq[i:], goTypeSeq[i:])
 		}
 	}
 
@@ -1485,7 +1513,7 @@ func CanonCapType(capTypeSeq []string) string {
 	return r
 }
 
-func (x *Extractor) GenerateListHelpers(capListTypeSeq []string, goTypeSeq []string) {
+func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTypeSeq []string) {
 
 	canonGoType := CanonGoType(goTypeSeq)
 	//canonCapType := CanonCapType(capListTypeSeq)
@@ -1535,4 +1563,9 @@ func %sTo%s(p capn.%s) %s {
 } 
 `, capTypeThenList, canonGoType, capTypeThenList, collapGoType, collapGoType, goBaseType))
 
+	if f != nil {
+		f.canonGoType = canonGoType
+		f.canonGoTypeListToSliceFunc = fmt.Sprintf("%sTo%s", capTypeThenList, canonGoType)
+		f.canonGoTypeSliceToListFunc = fmt.Sprintf("%sTo%s", canonGoType, capTypeThenList)
+	}
 }

@@ -46,16 +46,25 @@ struct MatrixCapn {
   	n = src.M().Len()
   	dest.M = make([][]int, n)
   	for i := 0; i < n; i++ {
-		dest.M[i] = Int64ListToIntSlice(capn.Int64List(src.M().At(i)))
+		dest.M[i] = Int64ListToSliceInt(src.M().At(i))
     }
     
     return dest
   } 
-`)
 
-			_ =
-				`
-func Int64ListToIntSlice(p capn.Int64List) []int {
+  func MatrixGoToCapn(seg *capn.Segment, src *Matrix) MatrixCapn { 
+    dest := AutoNewMatrixCapn(seg)
+  
+	mylist1 := seg.NewPointerList(len(src.M))
+	for i := range src.M {
+		mylist1.Set(i, capn.Object(SliceIntToInt64List(seg, src.M[i])))
+	}
+	dest.SetM(mylist1)
+
+    return dest
+  } 
+
+func Int64ListToSliceInt(p capn.Int64List) []int {
 	v := make([]int, p.Len())
 	for i := range v {
 		v[i] = int(p.At(i))
@@ -63,19 +72,7 @@ func Int64ListToIntSlice(p capn.Int64List) []int {
 	return v
 }
 
-  func MatrixGoToCapn(seg *capn.Segment, src *Matrix) MatrixCapn { 
-    dest := AutoNewMatrixCapn(seg)
-  
-	mylist1 := seg.NewPointerList(len(src.M))
-	for i := range src.M {
-		mylist1.Set(i, capn.Object(IntSliceToInt64List(seg, src.Matrix[i])))
-	}
-	dest.SetMatrix(mylist1)
-
-    return dest
-  } 
-
-func IntSliceToInt64List(seg *capn.Segment, m []int) capn.Int64List {
+func SliceIntToInt64List(seg *capn.Segment, m []int) capn.Int64List {
 	lst := seg.NewInt64List(len(m))
 	for i := range m {
 		lst.Set(i, int64(m[i]))
@@ -83,7 +80,7 @@ func IntSliceToInt64List(seg *capn.Segment, m []int) capn.Int64List {
 	return lst
 }
 
-`
+`)
 		})
 	})
 }

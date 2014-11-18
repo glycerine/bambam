@@ -30,7 +30,7 @@ type s1 struct {
 			capTypeSeq := []string{}
 			goTypeSeq := []string{"[]", "*", "int"}
 			var capTypeDisplay string
-			capTypeSeq, capTypeDisplay = x.GoTypeToCapnpType(goTypeSeq)
+			capTypeSeq, capTypeDisplay = x.GoTypeToCapnpType(nil, goTypeSeq)
 
 			fmt.Printf("capTypeSeq = '%v', goTypeSeq = '%v', capTypeDispaly = '%v'\n", capTypeSeq, goTypeSeq, capTypeDisplay)
 
