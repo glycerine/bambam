@@ -10,7 +10,7 @@ import (
 func Diffb(a string, b string) []byte {
 
 	dirpath := NewSimpleTempDir("diffdir_")
-	//defer os.RemoveAll(dirpath)
+	defer os.RemoveAll(dirpath)
 
 	fa := SimpleTempFile(dirpath)
 	fmt.Fprintf(fa, "%s\n", a)

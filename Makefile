@@ -20,5 +20,7 @@ test:
 	cd testpkg; go build
 
 clean:
-	rm -rf testdir_* ; rm -f *~
+	rm -rf testdir_* ; rm -f *~; rm -rf diffdir_*
 
+testbuild:
+	go test -c -gcflags "-N -l" -v
