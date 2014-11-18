@@ -64,20 +64,20 @@ struct MatrixCapn {
     return dest
   } 
 
-func Int64ListToSliceInt(p capn.Int64List) []int {
-	v := make([]int, p.Len())
-	for i := range v {
-		v[i] = int(p.At(i))
-	}
-	return v
-}
-
 func SliceIntToInt64List(seg *capn.Segment, m []int) capn.Int64List {
 	lst := seg.NewInt64List(len(m))
 	for i := range m {
 		lst.Set(i, int64(m[i]))
 	}
 	return lst
+}
+
+func Int64ListToSliceInt(p capn.Int64List) []int {
+	v := make([]int, p.Len())
+	for i := range v {
+		v[i] = int(p.At(i))
+	}
+	return v
 }
 
 `)

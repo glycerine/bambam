@@ -459,42 +459,6 @@ func (x *Extractor) ToCapnCodeFor(goStructName string) []byte {
 	return x.ToCapnCode[goStructName]
 }
 
-type ByFinalOrder []*Field
-
-func (s ByFinalOrder) Len() int {
-	return len(s)
-}
-func (s ByFinalOrder) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s ByFinalOrder) Less(i, j int) bool {
-	return s[i].finalOrder < s[j].finalOrder
-}
-
-type ByOrderOfAppearance []*Field
-
-func (s ByOrderOfAppearance) Len() int {
-	return len(s)
-}
-func (s ByOrderOfAppearance) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s ByOrderOfAppearance) Less(i, j int) bool {
-	return s[i].orderOfAppearance < s[j].orderOfAppearance
-}
-
-type ByGoName []*Struct
-
-func (s ByGoName) Len() int {
-	return len(s)
-}
-func (s ByGoName) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s ByGoName) Less(i, j int) bool {
-	return s[i].goName < s[j].goName
-}
-
 func (x *Extractor) WriteToSchema(w io.Writer) (n int64, err error) {
 
 	var m int
@@ -708,24 +672,24 @@ func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
 
 	} // end second loop over structs for translating methods.
 
-	// from x.GenerateListHelpers(capListTypeSeq, goTypeSeq)
-	for _, code := range x.SliceToListCode {
-
-		m, err = fmt.Fprintf(w, "\n\n")
-		n += int64(m)
-		if err != nil {
-			return
-		}
-
-		m, err = w.Write(code)
-		n += int64(m)
-		if err != nil {
-			return
-		}
-
+	// print the helpers made from x.GenerateListHelpers(capListTypeSeq, goTypeSeq)
+	// sort helper functions to get consistent (testable) order.
+	a := make([]AlphaHelper, len(x.SliceToListCode)+len(x.ListToSliceCode))
+	i := 0
+	for k, v := range x.SliceToListCode {
+		a[i].Name = k
+		a[i].Code = v
+		i++
+	}
+	for k, v := range x.ListToSliceCode {
+		a[i].Name = k
+		a[i].Code = v
+		i++
 	}
 
-	for _, code := range x.ListToSliceCode {
+	sort.Sort(AlphaHelperSlice(a))
+
+	for _, help := range a {
 
 		m, err = fmt.Fprintf(w, "\n\n")
 		n += int64(m)
@@ -733,7 +697,7 @@ func (x *Extractor) WriteToTranslators(w io.Writer) (n int64, err error) {
 			return
 		}
 
-		m, err = w.Write(code)
+		m, err = w.Write(help.Code)
 		n += int64(m)
 		if err != nil {
 			return
