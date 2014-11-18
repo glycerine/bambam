@@ -6,7 +6,7 @@ import (
 	cv "github.com/smartystreets/goconvey/convey"
 )
 
-func TestSliceOfStringToListOfText(t *testing.T) {
+func Test005SliceOfStringToListOfText(t *testing.T) {
 
 	cv.Convey("Given a struct that contains a slice of string", t, func() {
 		cv.Convey("then the capnp schema should contain a list of string and list translating code should be generated", func() {
@@ -55,9 +55,29 @@ type s1 struct {
   
     return dest
   } 
+
+  func SliceStringToTextList(seg *capn.Segment, m []string) capn.TextList {
+  	lst := seg.NewTextList(len(m))
+  	for i := range m {
+  		lst.Set(i, string(m[i]))
+  	}
+  	return lst
+  }
+  
+  
+  
+  func TextListToSliceString(p capn.TextList) []string {
+  	v := make([]string, p.Len())
+  	for i := range v {
+  		v[i] = string(p.At(i))
+  	}
+  	return v
+  } 
+
 `
 
 			cv.So(ExtractString2String(ex0), ShouldMatchModuloWhiteSpace, expected0)
+			//cv.So(expected0, ShouldStartWithModuloWhiteSpace, ExtractString2String(ex0))
 
 		})
 	})

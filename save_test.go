@@ -6,7 +6,7 @@ import (
 	cv "github.com/smartystreets/goconvey/convey"
 )
 
-func TestSave1(t *testing.T) {
+func Test006Save1(t *testing.T) {
 
 	cv.Convey("Given a parsable golang source file", t, func() {
 		cv.Convey("then structs with public fields get a Save() method to serialize them, and a Load() method to restore them.", func() {
@@ -56,6 +56,25 @@ func (s *RWTest) Load(r io.Reader) {
   
     return dest
   } 
+  
+  func SliceStringToTextList(seg *capn.Segment, m []string) capn.TextList {
+  	lst := seg.NewTextList(len(m))
+  	for i := range m {
+  		lst.Set(i, string(m[i]))
+  	}
+  	return lst
+  }
+  
+  
+  
+  func TextListToSliceString(p capn.TextList) []string {
+  	v := make([]string, p.Len())
+  	for i := range v {
+  		v[i] = string(p.At(i))
+  	}
+  	return v
+  } 
+
 `)
 
 		})
@@ -63,7 +82,7 @@ func (s *RWTest) Load(r io.Reader) {
 	})
 }
 
-func TestSave2(t *testing.T) {
+func Test007Save2(t *testing.T) {
 
 	cv.Convey("Given a parsable golang source file", t, func() {
 		cv.Convey("then structs with public fields get a save() method to serialize them, and a load() method to restore them.", func() {
@@ -132,6 +151,47 @@ func RWTestGoToCapn(seg *capn.Segment, src *RWTest) RWTestCapn {
 
     return dest
 }
+
+  
+  
+  func SliceIntToInt64List(seg *capn.Segment, m []int) capn.Int64List {
+  	lst := seg.NewInt64List(len(m))
+  	for i := range m {
+  		lst.Set(i, int64(m[i]))
+  	}
+  	return lst
+  }
+  
+  
+  
+  func Int64ListToSliceInt(p capn.Int64List) []int {
+  	v := make([]int, p.Len())
+  	for i := range v {
+  		v[i] = int(p.At(i))
+  	}
+  	return v
+  } 
+  
+  
+  
+  func SliceStringToTextList(seg *capn.Segment, m []string) capn.TextList {
+  	lst := seg.NewTextList(len(m))
+  	for i := range m {
+  		lst.Set(i, string(m[i]))
+  	}
+  	return lst
+  }
+  
+  
+  
+  func TextListToSliceString(p capn.TextList) []string {
+  	v := make([]string, p.Len())
+  	for i := range v {
+  		v[i] = string(p.At(i))
+  	}
+  	return v
+  } 
+
 `)
 
 		})

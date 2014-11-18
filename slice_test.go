@@ -158,7 +158,7 @@ func S1CapnToGo(src S1Capn, dest *s1) *s1 {
 // ==========================================
 // ==========================================
 
-func TestSliceOfSliceOfStruct(t *testing.T) {
+func Test008SliceOfSliceOfStruct(t *testing.T) {
 
 	cv.Convey("Given a go struct a slice of slice of int: type Cooper struct { Formation [][]Mini } ", t, func() {
 		cv.Convey("then then List(List(Mini)) should be generated in the capnp schema", func() {
@@ -221,7 +221,7 @@ struct MiniCapn {
   	n = src.Formation().Len()
   	dest.Formation = make([][]Mini, n)
   	for i := 0; i < n; i++ {
-          dest.Formation[i] = *ListToGo(src.Formation().At(i), nil)
+          dest.Formation[i] = *MiniCapnToGo(src.Formation().At(i), nil)
       }
   
   
@@ -245,9 +245,9 @@ struct MiniCapn {
   		dest.SetDowney(typedList)
   	}
   
-    // Formation -> List (go slice to capn list)
+    // Formation -> MiniCapn (go slice to capn list)
     if len(src.Formation) > 0 {
-  		typedList := NewListList(seg, len(src.Formation))
+  		typedList := NewMiniCapnList(seg, len(src.Formation))
   		plist := capn.PointerList(typedList)
   		i := 0
   		for _, ele := range src.Formation {
@@ -298,6 +298,26 @@ struct MiniCapn {
   
     return dest
   } 
+
+  
+  func SliceMiniToMiniCapnList(seg *capn.Segment, m []Mini) capn.MiniCapnList {
+  	lst := seg.NewMiniCapnList(len(m))
+  	for i := range m {
+  		lst.Set(i, MiniCapn(m[i]))
+  	}
+  	return lst
+  }
+  
+  
+  
+  func MiniCapnListToSliceMini(p capn.MiniCapnList) []Mini {
+  	v := make([]Mini, p.Len())
+  	for i := range v {
+  		v[i] = Mini(p.At(i))
+  	}
+  	return v
+  } 
+
 `
 			cv.So(ExtractString2String(in0), ShouldMatchModuloWhiteSpace, expect0)
 
