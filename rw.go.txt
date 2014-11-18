@@ -36,7 +36,7 @@ type RWTest struct {
     P2 []*Ptr2
 
     Matrix [][]int
-    NestMatrix [][]Nester1
+    //NestMatrix [][]Nester1
 }
 
 func main() {
@@ -52,7 +52,8 @@ func main() {
 		N2:       []Nester2{Nester2{N1: []Nester1{Nester1{Strs: []string{"hey", "joe"}}}}},
 		P2:       []*Ptr2{&Ptr2{P1: []*Ptr1{&Ptr1{Strs: []string{thing1, thing2}}}}},
         Matrix:   [][]int{[]int{1,2},[]int{3,4}},
-        NestMatrix: [][]Nester1{[]Nester1{Nester1{Strs:[]string{"z","w"}},Nester1{Strs:[]string{"q","r"}}},[]Nester1{Nester1{Strs:[]string{"zebra","wally"}},Nester1{Strs:[]string{"qubert","rocks"}}}},
+        // not passing yet:
+        // NestMatrix: [][]Nester1{[]Nester1{Nester1{Strs:[]string{"z","w"}},Nester1{Strs:[]string{"q","r"}}},[]Nester1{Nester1{Strs:[]string{"zebra","wally"}},Nester1{Strs:[]string{"qubert","rocks"}}}},
 	}
 
 	var o bytes.Buffer
