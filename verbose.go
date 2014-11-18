@@ -6,7 +6,7 @@ import (
 )
 
 // for debug output
-var Verbose bool
+var Verbose bool = true
 
 // get timestamp for logging purposes
 func ts() string {

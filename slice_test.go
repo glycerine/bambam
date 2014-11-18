@@ -327,7 +327,7 @@ struct MiniCapn {
 // ==========================================
 // ==========================================
 
-func TestSliceOfSliceOfInt(t *testing.T) {
+func Test009SliceOfSliceOfInt(t *testing.T) {
 
 	cv.Convey("Given a go struct a slice of slice: type Cooper struct { A [][]int } ", t, func() {
 		cv.Convey("then then List(List(Int64)) should be generated in the capnp schema", func() {
@@ -338,61 +338,71 @@ type Cooper struct {
 }`
 
 			expect0 := `
-struct CooperCapn { a  @0:   List(List(Int64)); } 
+struct CooperCapn { 
+   a  @0:   List(List(Int64)); 
+} 
 
+func (s *Cooper) Save(w io.Writer) {
+	seg := capn.NewBuffer(nil)
+	CooperGoToCapn(seg, s)
+	seg.WriteTo(w)
+}
+
+func (s *Cooper) Load(r io.Reader) {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+	}
+	z := testpkg.ReadRootCooperCapn(capMsg)
+	CooperCapnToGo(z, s)
+}
+
+func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper {
+	if dest == nil {
+		dest = &Cooper{}
+	}
+
+	var n int
+
+	// A
+	n = src.A().Len()
+	dest.A = make([][]int, n)
+	for i := 0; i < n; i++ {
+		dest.A[i] = Int64ListToSliceInt(src.A().At(i))
+	}
+
+	return dest
+}
+
+func CooperGoToCapn(seg *capn.Segment, src *Cooper) CooperCapn {
+	dest := AutoNewCooperCapn(seg)
+
+	mylist1 := seg.NewPointerList(len(src.A))
+	for i := range src.A {
+		mylist1.Set(i, capn.Object(SliceIntToInt64List(seg, src.A[i])))
+	}
+	dest.SetA(mylist1)
+
+	return dest
+}
+
+func SliceIntToInt64List(seg *capn.Segment, m []int) capn.Int64List {
+	lst := seg.NewInt64List(len(m))
+	for i := range m {
+		lst.Set(i, int64(m[i]))
+	}
+	return lst
+}
+
+func Int64ListToSliceInt(p capn.Int64List) []int {
+	v := make([]int, p.Len())
+	for i := range v {
+		v[i] = int(p.At(i))
+	}
+	return v
+}
 `
-			/*
-			   `
-			   func (s *Cooper) Save(w io.Writer) {
-			       	seg := capn.NewBuffer(nil)
-			       	CooperGoToCapn(seg, s)
-			       	seg.WriteTo(w)
-			   }
 
-			     func (s *Cooper) Load(r io.Reader) {
-			       	capMsg, err := capn.ReadFromStream(r, nil)
-			       	if err != nil {
-			       		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
-			       	}
-			       	z := testpkg.ReadRootCooperCapn(capMsg)
-			           CooperCapnToGo(z, s)
-			     }
-
-
-			   func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper {
-			       if dest == nil {
-			         dest = &Cooper{}
-			       }
-
-			       var n int
-
-			        // A
-			     	n = src.A().Len()
-			     	dest.A = make([][]int, n)
-			     	for i := 0; i < n; i++ {
-			             dest.A[i] = int(src.A().At(i))
-			         }
-
-
-			       return dest
-			     }
-
-
-
-			     func CooperGoToCapn(seg *capn.Segment, src *Cooper) CooperCapn {
-			       dest := AutoNewCooperCapn(seg)
-
-
-			       mylist1 := seg.NewInt64List(len(src.A))
-			       for i := range src.A {
-			          mylist1.Set(i, int64(src.A[i]))
-			       }
-			       dest.SetA(mylist1)
-
-			       return dest
-			     }
-			   `
-			*/
 			cv.So(ExtractString2String(in0), ShouldStartWithModuloWhiteSpace, expect0)
 
 		})

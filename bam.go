@@ -318,7 +318,7 @@ func (x *Extractor) SettersToGoListHelper(buf io.Writer, myStruct *Struct, f *Fi
 func (x *Extractor) ElemStarCapToGo(addStar string, f *Field) string {
 	f.goToCapFunc = x.goToCapTypeFunction(f.capTypeSeq)
 
-	VPrintf("f = %#v   addStar = '%v'    f.goToCapFunc = '%s'\n", f, addStar, f.goToCapFunc)
+	VPrintf("\n\n f = %#v   addStar = '%v'    f.goToCapFunc = '%s'\n", f, addStar, f.goToCapFunc)
 	if IsIntrinsicGoType(f.goType) {
 		VPrintf("\n intrinsic detected.\n")
 
@@ -390,6 +390,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				VPrintf("\n intrinsic detected in SettersToCapn.\n")
 
 				if IsDoubleList(f) {
+					VPrintf("\n yes IsDoubleList(f: '%s') in SettersToCapn.\n", f.goName)
 
 					fmt.Fprintf(&buf, `
 
@@ -1068,7 +1069,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	loweredName := underToCamelCase(LowercaseCapnpFieldName(goFieldName))
 
 	if tag != nil {
-		//VPrintf("tag = %#v\n", tag)
+		VPrintf("tag = %#v\n", tag)
 
 		if tag.Value != "" {
 
@@ -1076,7 +1077,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 			match := regexCapname.FindStringSubmatch(tag.Value)
 			if match != nil {
 				if len(match) == 2 {
-					//VPrintf("matched, using '%s' instead of '%s'\n", match[1], goFieldName)
+					VPrintf("matched, using '%s' instead of '%s'\n", match[1], goFieldName)
 					loweredName = match[1]
 					tagValue = tag.Value
 
@@ -1096,7 +1097,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 						VPrintf("skipping field '%s' marked with capid:\"skip\"", loweredName)
 						return nil
 					}
-					//VPrintf("matched, applying capid tag '%s' for field '%s'\n", match2[1], loweredName)
+					VPrintf("matched, applying capid tag '%s' for field '%s'\n", match2[1], loweredName)
 					n, err := strconv.Atoi(match2[1])
 					if err != nil {
 						err := fmt.Errorf(`problem in capid tag '%s' on field '%s' in struct '%s': could not convert to number, error: '%s'`, match2[1], goFieldName, x.curStruct.goName, err)
@@ -1123,7 +1124,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 
 	}
 
-	//VPrintf("\n\n\n GenerateStructField: goFieldName:'%s' -> loweredName:'%s'\n\n", goFieldName, loweredName)
+	VPrintf("\n\n\n GenerateStructField: goFieldName:'%s' -> loweredName:'%s'\n\n", goFieldName, loweredName)
 
 	if isCapnpKeyword(loweredName) {
 		err := fmt.Errorf(`after lowercasing the first letter, field '%s' becomes '%s' but this is a reserved capnp word, so please use a struct field tag (e.g. capname:"capnpName") to rename it`, goFieldName, loweredName)
@@ -1134,14 +1135,6 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	curField.capTypeSeq, capnTypeDisplayed = x.GoTypeToCapnpType(curField, goTypeSeq)
 
 	VPrintf("\n\n\n DEBUG:  '%s' '%s' @%d: %s; %s\n\n", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
-
-	/*
-		if isList {
-			fmt.Fprintf(&x.out, "%s%s @%d: List(%s); %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
-		} else {
-			fmt.Fprintf(&x.out, "%s%s @%d: %s; %s", x.fieldPrefix, loweredName, x.fieldCount, capnTypeDisplayed, x.fieldSuffix)
-		}
-	*/
 
 	sz := len(loweredName)
 	if sz > x.curStruct.longestField {
@@ -1166,7 +1159,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 	x.curStruct.fld = append(x.curStruct.fld, curField)
 	x.fieldCount++
 
-	//VPrintf("\n\n curField = %#v\n", curField)
+	VPrintf("\n\n curField = %#v\n", curField)
 
 	return nil
 }
@@ -1525,5 +1518,7 @@ func %sTo%s(p capn.%s) %s {
 		f.canonGoType = canonGoType
 		f.canonGoTypeListToSliceFunc = fmt.Sprintf("%sTo%s", capTypeThenList, canonGoType)
 		f.canonGoTypeSliceToListFunc = fmt.Sprintf("%sTo%s", canonGoType, capTypeThenList)
+
+		VPrintf("\n\n GenerateListHelpers done for field '%#v'\n\n", f)
 	}
 }

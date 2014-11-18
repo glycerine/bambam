@@ -79,7 +79,6 @@ func Int64ListToSliceInt(p capn.Int64List) []int {
 	}
 	return v
 }
-
 `)
 		})
 	})
