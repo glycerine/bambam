@@ -1471,7 +1471,7 @@ func CanonGoType(goTypeSeq []string) string {
 		if s == "[]" {
 			r += "Slice"
 		} else {
-			r += s
+			r += UppercaseFirstLetter(s)
 		}
 	}
 	return r
@@ -1512,6 +1512,7 @@ func (x *Extractor) GenerateListHelpers(capListTypeSeq []string, goTypeSeq []str
 	collapGoType := strings.Join(goTypeSeq, "")
 	m := len(goTypeSeq)
 	goBaseType := goTypeSeq[m-1]
+	//upperGoBaseType := UppercaseFirstLetter(goBaseType)
 
 	c2g, _ := x.c2g(capBaseType)
 	x.SliceToListCode[canonGoType] = []byte(fmt.Sprintf(`

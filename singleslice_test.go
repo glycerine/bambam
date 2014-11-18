@@ -17,7 +17,7 @@ type Vector struct {
 }`
 			cv.So(ExtractString2String(ex0), ShouldContainModuloWhiteSpace, `
 
-func Int64ListToSliceint(p capn.Int64List) []int {
+func Int64ListToSliceInt(p capn.Int64List) []int {
 	v := make([]int, p.Len())
 	for i := range v {
 		v[i] = int(p.At(i))
@@ -27,7 +27,7 @@ func Int64ListToSliceint(p capn.Int64List) []int {
 `)
 
 			cv.So(ExtractString2String(ex0), ShouldContainModuloWhiteSpace, `
-func SliceintToInt64List(seg *capn.Segment, m []int) capn.Int64List {
+func SliceIntToInt64List(seg *capn.Segment, m []int) capn.Int64List {
 	lst := seg.NewInt64List(len(m))
 	for i := range m {
 		lst.Set(i, int64(m[i]))
