@@ -9,7 +9,8 @@ import (
 const (
 	success               = ""
 	needExactValues       = "This assertion requires exactly %d comparison values (you provided %d)."
-	shouldMatchModulo     = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d)"
+	shouldMatchModulo     = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d); and \nFull diff -b:\n%s\n"
+	shouldStartWithModulo = "Expected expected PREFIX string '%s'\n       to be found at the start of actual string '%s'\n to  (ignoring %s)\n (but they did not!; first diff at '%s', pos %d); and \nFull diff -b:\n%s\n"
 	shouldContainModuloWS = "Expected expected string '%s'\n       to contain string '%s'\n (ignoring whitespace)\n (but it did not!)"
 	shouldBothBeStrings   = "Both arguments to this assertion must be strings (you provided %v and %v)."
 )
@@ -49,23 +50,25 @@ func ShouldMatchModulo(ignoring map[rune]bool, actual interface{}, expected ...i
 		}
 		diffpoint = string(vrune[vpos-1 : (vpos - 1 + n)])
 
+		diff := Diffb(value, expec)
+
 		ignored := "{"
 		switch len(ignoring) {
 		case 0:
-			return fmt.Sprintf(shouldMatchModulo, expec, value, "nothing", diffpoint, vpos-1)
+			return fmt.Sprintf(shouldMatchModulo, expec, value, "nothing", diffpoint, vpos-1, diff)
 		case 1:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c'", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1)
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1, diff)
 
 		default:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c', ", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1)
+			return fmt.Sprintf(shouldMatchModulo, expec, value, ignored, diffpoint, vpos-1, diff)
 		}
 	}
 }
@@ -118,23 +121,25 @@ func ShouldStartWithModuloWhiteSpace(actual interface{}, expectedPrefix ...inter
 		}
 		diffpoint = string(vrune[beg:(vpos - 1 + n)])
 
+		diff := Diffb(value, expecPrefix)
+
 		ignored := "{"
 		switch len(ignoring) {
 		case 0:
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, "nothing", diffpoint, vpos-1)
+			return fmt.Sprintf(shouldStartWithModulo, expecPrefix, value, "nothing", diffpoint, vpos-1, diff)
 		case 1:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c'", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored, diffpoint, vpos-1)
+			return fmt.Sprintf(shouldStartWithModulo, expecPrefix, value, ignored, diffpoint, vpos-1, diff)
 
 		default:
 			for k := range ignoring {
 				ignored = ignored + fmt.Sprintf("'%c', ", k)
 			}
 			ignored = ignored + "}"
-			return fmt.Sprintf(shouldMatchModulo, expecPrefix, value, ignored, diffpoint, vpos-1)
+			return fmt.Sprintf(shouldStartWithModulo, expecPrefix, value, ignored, diffpoint, vpos-1, diff)
 		}
 	}
 }

@@ -300,9 +300,9 @@ struct MiniCapn {
 
   
   func SliceMiniToMiniCapnList(seg *capn.Segment, m []Mini) MiniCapn_List {
-  	lst := seg.NewMiniCapnList(len(m))
+  	lst := NewMiniCapnList(seg, len(m))
   	for i := range m {
-  		lst.Set(i, MiniCapn(m[i]))
+  		lst.Set(i, MiniGoToCapn(seg, &m[i]))
   	}
   	return lst
   }
@@ -312,7 +312,7 @@ struct MiniCapn {
   func MiniCapnListToSliceMini(p MiniCapn_List) []Mini {
   	v := make([]Mini, p.Len())
   	for i := range v {
-  		v[i] = Mini(p.At(i))
+       MiniCapnToGo(p.At(i), &v[i])
   	}
   	return v
   } 
@@ -368,7 +368,7 @@ func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper {
 	n = src.A().Len()
 	dest.A = make([][]int, n)
 	for i := 0; i < n; i++ {
-		dest.A[i] = Int64ListToSliceInt(src.A().At(i))
+        dest.A[i] = Int64ListToSliceInt(capn.Int64List(src.A().At(i)))
 	}
 
 	return dest

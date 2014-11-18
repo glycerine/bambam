@@ -17,8 +17,8 @@ func TestDiffB(t *testing.T) {
 3
 4
 5
-type s1 struct {
-  MyInts []int
+type   s1    struct {
+  MyInts    []int
 }`
 			b := `
 1
