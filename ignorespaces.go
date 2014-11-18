@@ -3,13 +3,15 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 const (
-	success             = ""
-	needExactValues     = "This assertion requires exactly %d comparison values (you provided %d)."
-	shouldMatchModulo   = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d)"
-	shouldBothBeStrings = "Both arguments to this assertion must be strings (you provided %v and %v)."
+	success               = ""
+	needExactValues       = "This assertion requires exactly %d comparison values (you provided %d)."
+	shouldMatchModulo     = "Expected expected string '%s'\n       and actual string '%s'\n to match (ignoring %s)\n (but they did not!; first diff at '%s', pos %d)"
+	shouldContainModuloWS = "Expected expected string '%s'\n       to contain string '%s'\n (ignoring whitespace)\n (but they did not!)"
+	shouldBothBeStrings   = "Both arguments to this assertion must be strings (you provided %v and %v)."
 )
 
 // ShouldMatchModulo receives exactly two string parameters and an ignore map. It ensures that the order
@@ -236,4 +238,33 @@ func need(needed int, expected []interface{}) string {
 		return fmt.Sprintf(needExactValues, needed, len(expected))
 	}
 	return success
+}
+
+func ShouldContainModuloWhiteSpace(haystack interface{}, expectedNeedle ...interface{}) string {
+	if fail := need(1, expectedNeedle); fail != success {
+		return fail
+	}
+
+	value, valueIsString := haystack.(string)
+	expecNeedle, expecIsString := expectedNeedle[0].(string)
+
+	if !valueIsString || !expecIsString {
+		return fmt.Sprintf(shouldBothBeStrings, reflect.TypeOf(haystack), reflect.TypeOf(expectedNeedle[0]))
+	}
+
+	elimWs := func(r rune) rune {
+		if r == ' ' || r == '\t' || r == '\n' {
+			return -1 // drop the rune
+		}
+		return r
+	}
+
+	h := strings.Map(elimWs, value)
+	n := strings.Map(elimWs, expecNeedle)
+
+	if strings.Contains(h, n) {
+		return success
+	}
+
+	return fmt.Sprintf(shouldContainModuloWS, h, n)
 }

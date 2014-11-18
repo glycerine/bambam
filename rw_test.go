@@ -8,7 +8,7 @@ import (
 	cv "github.com/smartystreets/goconvey/convey"
 )
 
-func TestWriteReadThroughGeneratedTranslationCode(t *testing.T) {
+func Test003WriteReadThroughGeneratedTranslationCode(t *testing.T) {
 
 	cv.Convey("Given bambam generated go bindings", t, func() {
 		cv.Convey("then we should be able to write to disk, and read back the same structure", func() {

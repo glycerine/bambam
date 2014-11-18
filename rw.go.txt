@@ -34,6 +34,8 @@ type RWTest struct {
 
     N2 []Nester2
     P2 []*Ptr2
+
+    Matrix [][]int
 }
 
 func main() {
@@ -48,6 +50,7 @@ func main() {
 		Floaters: []float64{1.5, 4.5},
 		N2:       []Nester2{Nester2{N1: []Nester1{Nester1{Strs: []string{"hey", "joe"}}}}},
 		P2:       []*Ptr2{&Ptr2{P1: []*Ptr1{&Ptr1{Strs: []string{thing1, thing2}}}}},
+        Matrix:   [][]int{[]int{1,2},[]int{3,4}},
 	}
 
 	var o bytes.Buffer
