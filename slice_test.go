@@ -299,7 +299,7 @@ struct MiniCapn {
   } 
 
   
-  func SliceMiniToMiniCapnList(seg *capn.Segment, m []Mini) capn.MiniCapnList {
+  func SliceMiniToMiniCapnList(seg *capn.Segment, m []Mini) MiniCapn_List {
   	lst := seg.NewMiniCapnList(len(m))
   	for i := range m {
   		lst.Set(i, MiniCapn(m[i]))
@@ -309,7 +309,7 @@ struct MiniCapn {
   
   
   
-  func MiniCapnListToSliceMini(p capn.MiniCapnList) []Mini {
+  func MiniCapnListToSliceMini(p MiniCapn_List) []Mini {
   	v := make([]Mini, p.Len())
   	for i := range v {
   		v[i] = Mini(p.At(i))

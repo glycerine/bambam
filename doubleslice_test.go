@@ -46,7 +46,7 @@ struct MatrixCapn {
   	n = src.M().Len()
   	dest.M = make([][]int, n)
   	for i := 0; i < n; i++ {
-		dest.M[i] = Int64ListToSliceInt(src.M().At(i))
+		dest.M[i] = Int64ListToSliceInt(capn.Int64List(src.M().At(i)))
     }
     
     return dest

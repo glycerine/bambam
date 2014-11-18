@@ -105,6 +105,7 @@ type Field struct {
 	canonGoType                string // key into SliceToListCode and ListToSliceCode
 	canonGoTypeListToSliceFunc string
 	canonGoTypeSliceToListFunc string
+	singleCapListType          string
 }
 
 type Struct struct {
@@ -325,7 +326,7 @@ func (x *Extractor) ElemStarCapToGo(addStar string, f *Field) string {
 		// special case the list of list
 		//if strings.HasPrefix(f.canonGoType, "SliceSlice") {
 		if f.goTypePrefix == "[][]" {
-			return fmt.Sprintf("%s(src.%s().At(i))", f.canonGoTypeListToSliceFunc, f.goName)
+			return fmt.Sprintf("%s(%s(src.%s().At(i)))", f.canonGoTypeListToSliceFunc, f.singleCapListType, f.goName)
 		} else {
 			return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
 		}
@@ -1488,6 +1489,15 @@ func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTyp
 		capTypeThenList = capBaseType + strings.Join(capListTypeSeq[:n-1], "")
 	}
 
+	if IsIntrinsicGoType(last(goTypeSeq)) {
+		capTypeThenList = "capn." + capBaseType
+		f.singleCapListType = fmt.Sprintf("capn.%s", capBaseType)
+	} else {
+		capTypeThenList = capBaseType + strings.Join(capListTypeSeq[:n-1], "")
+		f.singleCapListType = fmt.Sprintf("%s_List", capBaseType)
+	}
+	VPrintf("\n capTypeThenList is set to : '%s'\n\n", capTypeThenList)
+
 	collapGoType := strings.Join(goTypeSeq, "")
 	m := len(goTypeSeq)
 	goBaseType := goTypeSeq[m-1]
@@ -1495,30 +1505,29 @@ func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTyp
 
 	c2g, _ := x.c2g(capBaseType)
 	x.SliceToListCode[canonGoType] = []byte(fmt.Sprintf(`
-func %sTo%s(seg *capn.Segment, m %s) capn.%s {
+func %sTo%s(seg *capn.Segment, m %s) %s {
 	lst := seg.New%s(len(m))
 	for i := range m {
 		lst.Set(i, %s(m[i]))
 	}
 	return lst
 }
-`, canonGoType, capTypeThenList, collapGoType, capTypeThenList, capTypeThenList, c2g))
+`, canonGoType, capTypeThenList, collapGoType, f.singleCapListType, capTypeThenList, c2g))
 
 	x.ListToSliceCode[canonGoType] = []byte(fmt.Sprintf(`
-func %sTo%s(p capn.%s) %s {
+func %sTo%s(p %s) %s {
 	v := make(%s, p.Len())
 	for i := range v {
 		v[i] = %s(p.At(i))
 	}
 	return v
 } 
-`, capTypeThenList, canonGoType, capTypeThenList, collapGoType, collapGoType, goBaseType))
+`, capTypeThenList, canonGoType, f.singleCapListType, collapGoType, collapGoType, goBaseType))
 
 	if f != nil {
 		f.canonGoType = canonGoType
 		f.canonGoTypeListToSliceFunc = fmt.Sprintf("%sTo%s", capTypeThenList, canonGoType)
 		f.canonGoTypeSliceToListFunc = fmt.Sprintf("%sTo%s", canonGoType, capTypeThenList)
-
 		VPrintf("\n\n GenerateListHelpers done for field '%#v'\n\n", f)
 	}
 }

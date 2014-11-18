@@ -1,6 +1,8 @@
 bambam: auto-generate capnproto schema from your golang source files.
 ======
 
+STATUS: broken at the moment, still working on List(List(type)) support.
+
 Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project used to mean writing alot of boilerplate.
 
 Not anymore.

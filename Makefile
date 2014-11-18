@@ -20,4 +20,5 @@ test:
 	cd testpkg; go build
 
 clean:
-	rm -rf testdir_*
+	rm -rf testdir_* ; rm -f *~
+
