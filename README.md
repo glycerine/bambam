@@ -49,9 +49,9 @@ use: bambam -o outdir -p package myGoSourceFile.go myGoSourceFile2.go ...
 demo
 -----
 
-See rw.go.txt. Also: after running `go test`, cd into testdir_* and look at the sample project files there.
+See rw.go.txt. To see all the files compiled together in one project: (a) comment out the defer in the rw_test.go file; (b) run `go test`; (c) then `cd testdir_*` and look at the sample project files there.
 
-Here is what use looks like. You end up with a Save() and Load() function for each of your structs. Simple!
+Here is what it looks like to use the Save()/Load() methods. You end up with a Save() and Load() function for each of your structs. Simple.
 
 ~~~
 package main
@@ -99,13 +99,14 @@ func main() {
 what Go types does bambam recognize?
 ----------------------------------------
 
-Supported: structs, slices, and primitve/scalar types are supported. Structs that contain structs are supported. You have both slices of scalars and slices of structs available.
+Supported: structs, slices, and primitve/scalar types are supported. Structs that contain structs are supported. You have both slices of scalars (e.g. []int) and slices of structs (e.g. []MyStruct) available.
 
-Currently unsupported (at the moment; pull requests welcome): Go maps.  
+We handle [][]T, but not [][][]T, where T is a struct or primitive type. The need for triply nested slices is expected to be rare. Interpose a struct after two slices if you need deeper nesting.
 
-Also: some pointers work, but pointers in the inner-most struct do not. This is not a big limitation, as it is rarely meaningful to pass a pointer value to a different process.
+Currently unsupported (pull requests welcome): Go maps.  
 
-Not planned (likely never supported): Go interfaces, Go channels.
+Also: pointers to structs to be serialized work, but pointers in the inner-most struct do not. This is not a big limitation, as it is rarely meaningful to pass a pointer value to a different process.
+
 
 capid tags on go structs
 --------------------------
@@ -130,10 +131,6 @@ type Job struct {
    B int `capid:"1"` 
 }
 ~~~
-
-limitations
-------------
-We handle List(List(a)), but not List(List(List(a))), where a is a struct or primitive type. The occurance of triply nested lists (slices) is expected to be rare.
 
 -----
 -----
