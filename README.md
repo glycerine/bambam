@@ -132,6 +132,40 @@ type Job struct {
 }
 ~~~
 
+other tags
+----------
+
+Also available tags: `capid:"skip"` or `capid:"-1"` (any negative number): this field will be skipped and not serialized or written to the schema.
+
+~~~
+// capname:"Counter"
+type number struct {
+   A int
+}
+~~~
+
+The above struct will be mapped into capnproto as:
+
+~~~
+struct Counter {
+  a @0: Int64;
+}
+~~~
+
+Without the `// capname:"Counter"` comment, you would get:
+
+~~~
+struct NumberCapn {
+  a @0: Int64;
+}
+~~~
+
+Explanation: Using a `// capname:"newName"` comment on the line right before a struct definition will cause `bambam` to use 'newName' as the name for the corresponding struct in the capnproto schema. Otherwise the corresponding struct will simply uppercase the first letter of the orignal Go struct, and append "Capn". For example: a Go struct called `number` would induce a parallel generated capnp struct called `NumberCapn`.
+
+special ignored field names
+---------------------------
+`XXX_unrecognized` fields are currently ignored by default, to make the transition from other systems easier.
+
 -----
 -----
 
