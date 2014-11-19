@@ -1,8 +1,6 @@
 bambam: auto-generate capnproto schema from your golang source files.
 ======
 
-STATUS: broken at the moment, still working on List(List(type)) support.
-
 Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project used to mean writing alot of boilerplate.
 
 Not anymore.
@@ -132,6 +130,10 @@ type Job struct {
    B int `capid:"1"` 
 }
 ~~~
+
+limitations
+------------
+We handle List(List(a)), but not List(List(List(a))), where a is a struct or primitive type. The occurance of triply nested lists (slices) is expected to be rare.
 
 -----
 -----

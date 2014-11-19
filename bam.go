@@ -260,7 +260,6 @@ func (x *Extractor) SettersToGo(goName string) string {
 		panic(fmt.Sprintf("bad goName '%s'", goName))
 	}
 	VPrintf("\n\n SettersToGo running on myStruct = %#v\n", myStruct)
-	//for i, f := range myStruct.fld {
 	i := 0
 	for _, f := range myStruct.fld {
 		VPrintf("\n\n SettersToGo running on myStruct.fld[%d] = %#v\n", i, f)
@@ -326,19 +325,13 @@ func (x *Extractor) ElemStarCapToGo(addStar string, f *Field) string {
 	// list of list special handling, try to generalize it, as it needs
 	// to work for intrinsics and structs
 	if f.goTypePrefix == "[][]" {
+		VPrintf("\n slice of slice / ListList detected.\n")
 		return fmt.Sprintf("%s(%s(src.%s().At(i)))", f.canonGoTypeListToSliceFunc, f.singleCapListType, f.goName)
 	}
 
 	if IsIntrinsicGoType(f.goType) {
 		VPrintf("\n intrinsic detected.\n")
-
-		// special case the list of list
-		VPrintf("\n\n   f.goTypePrefix = %#v,  f = %#v   addStar = '%v'\n", f.goTypePrefix, f, addStar)
-		if f.goTypePrefix == "[][]" {
-			return fmt.Sprintf("%s(%s(src.%s().At(i)))", f.canonGoTypeListToSliceFunc, f.singleCapListType, f.goName)
-		} else {
-			return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
-		}
+		return fmt.Sprintf("%s(src.%s().At(i))", f.goType, f.goName)
 	} else {
 		VPrintf("\n non-intrinsic detected. f.goType = '%v'\n", f.goType)
 		return fmt.Sprintf("%s%sToGo(src.%s().At(i), nil)", addStar, f.goToCapFunc, f.goName)
@@ -391,7 +384,6 @@ func (x *Extractor) SettersToCapn(goName string) string {
 	}
 	VPrintf("\n\n SettersToCapn running on myStruct = %#v\n", t)
 	for i, f := range t.fld {
-		//for _, f := range t.fld {
 		VPrintf("\n\n SettersToCapn running on t.fld[%d] = %#v\n", i, f)
 
 		if f.isList {
@@ -908,42 +900,6 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 														if err != nil {
 															return []byte{}, err
 														}
-
-														/*
-															switch fld2.Type.(type) {
-
-															case (*ast.StarExpr):
-																star2 := fld2.Type.(*ast.StarExpr)
-																err = x.GenerateStructField(ident.Name, star2.X.(*ast.Ident).Name, fld2, NotList, fld2.Tag, NotEmbedded)
-																if err != nil {
-																	return []byte{}, err
-																}
-
-															case (*ast.Ident):
-																ident2 := fld2.Type.(*ast.Ident)
-																err = x.GenerateStructField(ident.Name, ident2.Name, fld2, NotList, fld2.Tag, NotEmbedded)
-																if err != nil {
-																	return []byte{}, err
-																}
-
-															case (*ast.ArrayType):
-																// slice or array
-																array2 := fld2.Type.(*ast.ArrayType)
-																switch array2.Elt.(type) {
-																case (*ast.Ident):
-																	err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
-																	if err != nil {
-																		return []byte{}, err
-																	}
-																case (*ast.StarExpr):
-																	VPrintf("\n\n in array type is *ast.StarExpr\n")
-																	err = x.GenerateStructField(ident.Name, array2.Elt.(*ast.StarExpr).X.(*ast.Ident).Name, fld2, YesIsList, fld2.Tag, NotEmbedded)
-																	if err != nil {
-																		return []byte{}, err
-																	}
-																}
-															}
-														*/
 													}
 												}
 											}
@@ -959,14 +915,6 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 								//VPrintf("\n =========== end stru =======\n\n\n")
 							}
 						}
-
-						//VPrintf("spe.Name.Obj.Kind = %s\n", typeSpec.Name.Obj.Kind)
-
-						//VPrintf("spe.Name.Obj = %#v\n", typeSpec.Name.Obj)
-						//goon.Dump(typeSpec.Name.Obj)
-
-						//VPrintf("spe.Name.Obj.Decl = %#v\n", typeSpec.Name.Obj.Decl)
-						//goon.Dump(typeSpec.Name.Obj.Decl)
 					}
 
 				}
@@ -984,8 +932,6 @@ func IsSlice(tnas string) bool {
 func (x *Extractor) NoteTypedef(goNewTypeName string, goTargetTypeName string) {
 	// we just want to preserve the mapping, without adding Capn suffix
 	//VPrintf("\n\n noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'\n", goNewTypeName, goTargetTypeName)
-	//x.goType2capTypeCache[goNewTypeName] = goNewTypeName
-
 	var capTypeSeq []string
 	capTypeSeq, x.goType2capTypeCache[goNewTypeName] = x.GoTypeToCapnpType(nil, []string{goTargetTypeName})
 	VPrintf("\n\n 888 noting typedef: goNewTypeName: '%s', goTargetTypeName: '%s'   x.goType2capTypeCache[goNewTypeName]: '%v'  capTypeSeq: '%v'\n", goNewTypeName, goTargetTypeName, x.goType2capTypeCache[goNewTypeName], capTypeSeq)
@@ -1083,7 +1029,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 		return nil
 	}
 
-	//VPrintf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', astfld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, astfld, tag)
+	VPrintf("\n\n\n GenerateStructField called with goFieldName = '%s', goFieldTypeName = '%s', astfld = %#v, tag = %#v\n\n", goFieldName, goFieldTypeName, astfld, tag)
 
 	// if we are ignoring private (lowercase first letter) fields, then stop here.
 	if !IsEmbedded {
@@ -1329,7 +1275,7 @@ func (x *Extractor) g2c(goFieldTypeName string) string {
 	var capnTypeDisplayed string
 	alreadyKnownCapnType := x.goType2capTypeCache[goFieldTypeName]
 	if alreadyKnownCapnType != "" {
-		//VPrintf("\n\n debug: x.goType2capTypeCache[goFieldTypeName='%s'] -> '%s'\n", goFieldTypeName, alreadyKnownCapnType)
+		VPrintf("\n\n debug: x.goType2capTypeCache[goFieldTypeName='%s'] -> '%s'\n", goFieldTypeName, alreadyKnownCapnType)
 		capnTypeDisplayed = alreadyKnownCapnType
 	} else {
 		capnTypeDisplayed = GoType2CapnType(goFieldTypeName)
@@ -1394,7 +1340,6 @@ func (x *Extractor) CapnpCompileFragment(in []byte) ([]byte, error) {
 	x.compileDir = NewTempDir()
 
 	f := x.compileDir.TempFile()
-	//fnCapnGoOutput := tempfile.Name() + ".go"
 
 	by := x.AssembleCapnpFile(in)
 	debug := string(by.Bytes())
@@ -1443,7 +1388,7 @@ func ExtraSpaces(fieldNum int) string {
 }
 
 func IsIntrinsicGoType(goFieldTypeName string) bool {
-	//VPrintf("\n IsIntrinsic called with '%s'\n", goFieldTypeName)
+	VPrintf("\n IsIntrinsic called with '%s'\n", goFieldTypeName)
 
 	switch goFieldTypeName {
 	case "string":
@@ -1532,7 +1477,6 @@ func (x *Extractor) GenerateListHelpers(f *Field, capListTypeSeq []string, goTyp
 	collapGoType := strings.Join(goTypeSeq, "")
 	m := len(goTypeSeq)
 	goBaseType := goTypeSeq[m-1]
-	//upperGoBaseType := UppercaseFirstLetter(goBaseType)
 
 	c2g, _ := x.c2g(capBaseType)
 

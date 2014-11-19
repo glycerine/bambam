@@ -14,7 +14,8 @@ func Test003WriteReadThroughGeneratedTranslationCode(t *testing.T) {
 		cv.Convey("then we should be able to write to disk, and read back the same structure", func() {
 
 			tdir := NewTempDir()
-			//defer tdir.Cleanup()
+			// comment the defer out to debug any rw test failures.
+			defer tdir.Cleanup()
 
 			MainArgs([]string{os.Args[0], "-o", tdir.DirPath, "rw.go.txt"})
 
