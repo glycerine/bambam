@@ -322,11 +322,18 @@ func (x *Extractor) ElemStarCapToGo(addStar string, f *Field) string {
 	f.goToCapFunc = x.goToCapTypeFunction(f.capTypeSeq)
 
 	VPrintf("\n\n f = %#v   addStar = '%v'    f.goToCapFunc = '%s'\n", f, addStar, f.goToCapFunc)
+
+	// list of list special handling, try to generalize it, as it needs
+	// to work for intrinsics and structs
+	if f.goTypePrefix == "[][]" {
+		return fmt.Sprintf("%s(%s(src.%s().At(i)))", f.canonGoTypeListToSliceFunc, f.singleCapListType, f.goName)
+	}
+
 	if IsIntrinsicGoType(f.goType) {
 		VPrintf("\n intrinsic detected.\n")
 
 		// special case the list of list
-		//if strings.HasPrefix(f.canonGoType, "SliceSlice") {
+		VPrintf("\n\n   f.goTypePrefix = %#v,  f = %#v   addStar = '%v'\n", f.goTypePrefix, f, addStar)
 		if f.goTypePrefix == "[][]" {
 			return fmt.Sprintf("%s(%s(src.%s().At(i)))", f.canonGoTypeListToSliceFunc, f.singleCapListType, f.goName)
 		} else {
@@ -423,7 +430,22 @@ func (x *Extractor) SettersToCapn(goName string) string {
 					addAmpersand = ""
 				}
 
-				fmt.Fprintf(&buf, `
+				// list of list needs special casing
+				if isListList(f.goTypePrefix) {
+					fmt.Fprintf(&buf, `
+  // %s -> %s (go slice to capn list)
+  if len(src.%s) > 0 {
+		plist := seg.NewPointerList(len(src.%s))
+		i := 0
+		for _, ele := range src.%s {
+			plist.Set(i, capn.Object(%s(seg, ele)))
+			i++
+		}
+		dest.Set%s(plist)
+	}
+`, f.goName, f.goToCapFunc, f.goName, f.goName, f.goName, f.canonGoTypeSliceToListFunc, f.goCapGoName)
+				} else {
+					fmt.Fprintf(&buf, `
   // %s -> %s (go slice to capn list)
   if len(src.%s) > 0 {
 		typedList := New%sList(seg, len(src.%s))
@@ -436,7 +458,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		dest.Set%s(typedList)
 	}
 `, f.goName, f.goToCapFunc, f.goName, f.goToCapFunc, f.goName, f.goName, f.goType, addAmpersand, f.goCapGoName)
-
+				}
 			} // end switch f.goType
 
 		} else {
@@ -454,6 +476,10 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		}
 	}
 	return string(buf.Bytes())
+}
+
+func isListList(goTypePrefix string) bool {
+	return strings.HasPrefix(goTypePrefix, "[][]")
 }
 
 func (x *Extractor) ToGoCodeFor(goName string) []byte {

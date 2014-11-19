@@ -220,9 +220,8 @@ struct MiniCapn {
   	n = src.Formation().Len()
   	dest.Formation = make([][]Mini, n)
   	for i := 0; i < n; i++ {
-          dest.Formation[i] = *MiniCapnToGo(src.Formation().At(i), nil)
+          dest.Formation[i] = MiniCapnListToSliceMini(MiniCapn_List(src.Formation().At(i)))
       }
-  
   
     return dest
   } 
@@ -246,14 +245,13 @@ struct MiniCapn {
   
     // Formation -> MiniCapn (go slice to capn list)
     if len(src.Formation) > 0 {
-  		typedList := NewMiniCapnList(seg, len(src.Formation))
-  		plist := capn.PointerList(typedList)
+  		plist := seg.NewPointerList(len(src.Formation))
   		i := 0
   		for _, ele := range src.Formation {
-  			plist.Set(i, capn.Object(MiniGoToCapn(seg, &ele)))
+  			plist.Set(i, capn.Object(SliceMiniToMiniCapnList(seg, ele)))
   			i++
   		}
-  		dest.SetFormation(typedList)
+  		dest.SetFormation(plist)
   	}
   
     return dest
