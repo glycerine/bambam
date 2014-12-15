@@ -49,10 +49,10 @@ use: bambam -o outdir -p package myGoSourceFile.go myGoSourceFile2.go ...
 demo
 -----
 
-See rw.go.txt. To see all the files compiled together in one project: (a) comment out the defer in the rw_test.go file; (b) run `go test`; (c) then `cd testdir_*` and look at the sample project files there. (d). run `go build` in the testdir_ to rebuild the binary. Notice that you will need all four .go files to successfully build: 
+See rw.go.txt. To see all the files compiled together in one project: (a) comment out the defer in the rw_test.go file; (b) run `go test`; (c) then `cd testdir_*` and look at the sample project files there. (d). run `go build` in the testdir_ to rebuild the binary. Notice that you will need all three .go files to successfully build: 
 
 ~~~
-go.capnp  rw.go  schema.capnp.go  translateCapn.go  # the four files in the testdir_* directory
+rw.go  schema.capnp.go  translateCapn.go
 ~~~
 
 example:
