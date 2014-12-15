@@ -49,7 +49,23 @@ use: bambam -o outdir -p package myGoSourceFile.go myGoSourceFile2.go ...
 demo
 -----
 
-See rw.go.txt. To see all the files compiled together in one project: (a) comment out the defer in the rw_test.go file; (b) run `go test`; (c) then `cd testdir_*` and look at the sample project files there.
+See rw.go.txt. To see all the files compiled together in one project: (a) comment out the defer in the rw_test.go file; (b) run `go test`; (c) then `cd testdir_*` and look at the sample project files there. (d). run `go build` in the testdir_ to rebuild the binary. Notice that you will need all four .go files to successfully build: 
+
+~~~
+go.capnp  rw.go  schema.capnp.go  translateCapn.go  # the four files in the testdir_* directory
+~~~
+
+example:
+
+~~~
+jaten@c03:~/go/src/github.com/glycerine/bambam:master$ cd testdir_884497362/
+jaten@c03:~/go/src/github.com/glycerine/bambam/testdir_884497362:master$ go build
+jaten@c03:~/go/src/github.com/glycerine/bambam/testdir_884497362:master$ ls
+go.capnp  rw.go  rw.go.txt  schema.capnp  schema.capnp.go  testdir_884497362  translateCapn.go
+jaten@c03:~/go/src/github.com/glycerine/bambam/testdir_884497362:master$ ./testdir_884497362
+Load() data matched Saved() data.
+jaten@c03:~/go/src/github.com/glycerine/bambam/testdir_884497362:master$ # run was successful
+~~~
 
 Here is what it looks like to use the Save()/Load() methods. You end up with a Save() and Load() function for each of your structs. Simple.
 
