@@ -274,6 +274,8 @@ func (x *Extractor) SettersToGo(goName string) string {
 				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.goCapGoName)
 			case "int64":
 				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.goCapGoName)
+			case "uint64":
+				fmt.Fprintf(&buf, "  dest.%s = uint64(src.%s())\n", f.goName, f.goCapGoName)
 			case "float64":
 				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.goCapGoName)
 			case "string":
@@ -460,6 +462,8 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.goCapGoName, f.goName)
 			case "int64":
 				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+			case "uint64":
+				fmt.Fprintf(&buf, "  dest.Set%s(uint64(src.%s))\n", f.goCapGoName, f.goName)
 			case "float64":
 				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			case "string":
