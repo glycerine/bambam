@@ -562,7 +562,7 @@ func (x *Extractor) GenCapidTag(f *Field) string {
 	if curTag == "" || curTag == "``" {
 		return fmt.Sprintf("`%s`", addme)
 	}
-	return fmt.Sprintf("`%s,%s`", stripBackticks(curTag), addme)
+	return fmt.Sprintf("`%s %s`", stripBackticks(curTag), addme)
 }
 
 func hasCapidTag(s string) bool {
