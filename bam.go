@@ -207,21 +207,24 @@ func (x *Extractor) GenerateTranslators() {
 	for _, s := range x.srs {
 
 		x.SaveCode[s.goName] = []byte(fmt.Sprintf(`
-func (s *%s) Save(w io.Writer) {
+func (s *%s) Save(w io.Writer) error {
   	seg := capn.NewBuffer(nil)
   	%sGoToCapn(seg, s)
-  	seg.WriteTo(w)
+    _, err := seg.WriteTo(w)
+    return err
 }
  `, s.goName, s.goName))
 
 		x.LoadCode[s.goName] = []byte(fmt.Sprintf(` 
-func (s *%s) Load(r io.Reader) {
+func (s *%s) Load(r io.Reader) error {
   	capMsg, err := capn.ReadFromStream(r, nil)
   	if err != nil {
-  		panic(fmt.Errorf("capn.ReadFromStream error: %%s", err))
+  		//panic(fmt.Errorf("capn.ReadFromStream error: %%s", err))
+        return err
   	}
   	z := %sReadRoot%s(capMsg)
       %sToGo(z, s)
+   return nil
 }
 `, s.goName, x.packageDot(), s.capName, s.capName))
 
@@ -1030,6 +1033,7 @@ func (x *Extractor) GenerateStructField(goFieldName string, goFieldTypePrefix st
 
 	// skip protobuf side effects
 	if goFieldTypeName == "XXX_unrecognized" {
+		fmt.Printf("detected XXX_unrecognized\n")
 		return nil
 	}
 

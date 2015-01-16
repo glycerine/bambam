@@ -19,19 +19,22 @@ type s1 struct {
 			expected0 := `
   struct S1Capn { names  @0:   List(Text); } 
 
-    func (s *s1) Save(w io.Writer) {
+    func (s *s1) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	s1GoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
     }
       
-    func (s *s1) Load(r io.Reader) {
+    func (s *s1) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
+        return nil
     }
   
   func S1CapnToGo(src S1Capn, dest *s1) *s1 { 

@@ -88,21 +88,24 @@ struct BigCapn { }
 struct S1Capn { myBigs  @0:   List(BigCapn); } 
 
 
-    func (s *Big) Save(w io.Writer) {
+    func (s *Big) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	BigGoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
     }
    
   
    
-    func (s *Big) Load(r io.Reader) {
+    func (s *Big) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootBigCapn(capMsg)
         BigCapnToGo(z, s)
+        return nil
     }
 
 func BigCapnToGo(src BigCapn, dest *Big) *Big { 
@@ -117,21 +120,24 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
 }   
 
   
-    func (s *s1) Save(w io.Writer) {
+    func (s *s1) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	s1GoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
     }
    
   
    
-    func (s *s1) Load(r io.Reader) {
+    func (s *s1) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
+        return nil
     }
 
 func S1CapnToGo(src S1Capn, dest *s1) *s1 {
@@ -182,21 +188,24 @@ struct MiniCapn {
 } 
   
   
-  func (s *Cooper) Save(w io.Writer) {
+  func (s *Cooper) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	CooperGoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
   }
    
   
    
-  func (s *Cooper) Load(r io.Reader) {
+  func (s *Cooper) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootCooperCapn(capMsg)
         CooperCapnToGo(z, s)
+        return nil
   }
   
   
@@ -259,21 +268,24 @@ struct MiniCapn {
   
   
   
-  func (s *Mini) Save(w io.Writer) {
+  func (s *Mini) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	MiniGoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
   }
    
   
    
-  func (s *Mini) Load(r io.Reader) {
+  func (s *Mini) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootMiniCapn(capMsg)
         MiniCapnToGo(z, s)
+        return nil
   }
   
   
@@ -340,19 +352,22 @@ struct CooperCapn {
    a  @0:   List(List(Int64)); 
 } 
 
-func (s *Cooper) Save(w io.Writer) {
+func (s *Cooper) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
 	CooperGoToCapn(seg, s)
-	seg.WriteTo(w)
+	_, err := seg.WriteTo(w)
+    return err
 }
 
-func (s *Cooper) Load(r io.Reader) {
+func (s *Cooper) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
-		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+        return err
 	}
 	z := testpkg.ReadRootCooperCapn(capMsg)
 	CooperCapnToGo(z, s)
+    return nil
 }
 
 func CooperCapnToGo(src CooperCapn, dest *Cooper) *Cooper {
