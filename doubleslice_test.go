@@ -20,19 +20,22 @@ struct MatrixCapn {
   m  @0:   List(List(Int64)); 
 } 
 
-  func (s *Matrix) Save(w io.Writer) {
+  func (s *Matrix) Save(w io.Writer) error {
     	seg := capn.NewBuffer(nil)
     	MatrixGoToCapn(seg, s)
-    	seg.WriteTo(w)
+    	_, err := seg.WriteTo(w)
+        return err
   }
    
-  func (s *Matrix) Load(r io.Reader) {
+  func (s *Matrix) Load(r io.Reader) error {
     	capMsg, err := capn.ReadFromStream(r, nil)
     	if err != nil {
-    		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+    		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+            return err
     	}
     	z := testpkg.ReadRootMatrixCapn(capMsg)
         MatrixCapnToGo(z, s)
+        return nil
   }
   
   func MatrixCapnToGo(src MatrixCapn, dest *Matrix) *Matrix { 

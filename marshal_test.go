@@ -51,6 +51,29 @@ func ExtraGoToCapn(seg *capn.Segment, src *Extra) ExtraCapn {
 `)
 
 			})
+			cv.Convey("and should handle uint fields", func() {
+				ex0 := `
+type Extra struct {
+  A uint64
+}`
+				toGoCode := ExtractCapnToGoCode(ex0, "Extra")
+				cv.So(toGoCode, ShouldMatchModuloWhiteSpace, `
+func ExtraCapnToGo(src ExtraCapn, dest *Extra) *Extra {
+  if dest == nil {
+     dest = &Extra{}
+  }
+  dest.A = uint64(src.A())
+  return dest }
+`)
+
+				toCapnCode := ExtractGoToCapnCode(ex0, "Extra")
+				cv.So(toCapnCode, ShouldMatchModuloWhiteSpace, `
+func ExtraGoToCapn(seg *capn.Segment, src *Extra) ExtraCapn {
+  dest := AutoNewExtraCapn(seg)
+  dest.SetA(uint64(src.A))
+  return dest }
+`)
+			})
 		})
 	})
 }

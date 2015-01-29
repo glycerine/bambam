@@ -21,19 +21,22 @@ struct RWTestCapn {
   hello @0: List(Text);
 }
 
-func (s *RWTest) Save(w io.Writer) {
+func (s *RWTest) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
 	RWTestGoToCapn(seg, s)
-	seg.WriteTo(w)
+    _, err := seg.WriteTo(w)
+    return err
 }
 
-func (s *RWTest) Load(r io.Reader) {
+func (s *RWTest) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
-		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+        return err
 	}
 	z := testpkg.ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
+    return nil
 }
   
   func RWTestCapnToGo(src RWTestCapn, dest *RWTest) *RWTest { 
@@ -99,19 +102,22 @@ struct RWTestCapn {
   world  @1: List(Int64);
 }
 
-func (s *RWTest) Save(w io.Writer) {
+func (s *RWTest) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
 	RWTestGoToCapn(seg, s)
-	seg.WriteTo(w)
+    _, err := seg.WriteTo(w)
+    return err
 }
 
-func (s *RWTest) Load(r io.Reader) {
+func (s *RWTest) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
-		panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
+        return err
 	}
 	z := testpkg.ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
+    return nil
 }
 
   

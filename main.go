@@ -143,7 +143,6 @@ func MainArgs(args []string) {
 import (
   capn "github.com/glycerine/go-capnproto"
   "io"
-  "fmt"
 )
 
 `, x.pkgName)
