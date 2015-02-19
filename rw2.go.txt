@@ -1,0 +1,51 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"reflect"
+    "bytes"
+	"github.com/shurcooL/go-goon"
+)
+
+// used in rw2_test.go for round-trip testing write/read
+
+type Dude struct {
+    Name string
+    Age  int
+    Addr Address
+}
+
+type Address struct {
+    Street string
+    Zip    string
+}
+
+func main() {
+
+	rw := Dude{
+        Name: "Hank",
+        Age: 33,
+        Addr: Address{Street: "123 Main Street", Zip: "11111"},
+	}
+
+	var o bytes.Buffer
+	rw.Save(&o)
+
+    rw2 := &Dude{}
+	rw2.Load(&o)
+
+	if !reflect.DeepEqual(&rw, rw2) {
+		fmt.Printf("rw and rw2 were not equal!\n")
+
+		fmt.Printf("\n\n =============  rw: ====\n")
+		goon.Dump(rw)
+		fmt.Printf("\n\n =============  rw2: ====\n")
+		goon.Dump(rw2)
+		fmt.Printf("\n\n ================\n")
+
+		os.Exit(1)
+	}
+
+	fmt.Printf("Load() data matched Saved() data.\n")
+}
