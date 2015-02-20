@@ -272,6 +272,32 @@ func (x *Extractor) SettersToGo(goName string) string {
 		if n >= 2 && f.goTypeSeq[0] == "[]" {
 			x.SettersToGoListHelper(&buf, myStruct, f)
 		} else {
+
+			var isCapType bool = false
+			if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
+				if len(f.goTypeSeq) > 1 {
+					if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
+						fmt.Println("*** yes@1", toCapType)
+						isCapType = true
+					}
+				}
+			} else {
+				fmt.Println("*** yes@0", toCapType)
+				isCapType = true
+			}
+
+			if isCapType {
+				if f.goTypeSeq[0] == "*" {
+					fmt.Fprintf(&buf, "  dest.%s = %sCapnToGo(src.%s(), nil)\n",
+						f.goName, f.goType, f.goCapGoName)
+				} else {
+					fmt.Fprintf(&buf, "  dest.%s = *%sCapnToGo(src.%s(), nil)\n",
+						f.goName, f.goType, f.goCapGoName)
+				}
+
+				continue
+			}
+
 			switch f.goType {
 			case "int":
 				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.goCapGoName)
@@ -421,7 +447,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				}
 			} else {
 				// handle list of struct
-				VPrintf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
+				fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
 				addAmpersand := "&"
 				if isPointerType(f.goTypePrefix) {
 					addAmpersand = ""
@@ -459,6 +485,31 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			} // end switch f.goType
 
 		} else {
+
+			var isCapType bool = false
+			if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
+				if len(f.goTypeSeq) > 1 {
+					if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
+						fmt.Println("*** yes@1", toCapType)
+						isCapType = true
+					}
+				}
+			} else {
+				fmt.Println("*** yes@0", toCapType)
+				isCapType = true
+			}
+
+			if isCapType {
+				if f.goTypeSeq[0] == "*" {
+					fmt.Fprintf(&buf, "  dest.Set%s(%sGoToCapn(seg, src.%s))\n",
+						f.goName, f.goType, f.goName)
+				} else {
+					fmt.Fprintf(&buf, "  dest.Set%s(%sGoToCapn(seg, &src.%s))\n",
+						f.goName, f.goType, f.goName)
+				}
+
+				continue
+			}
 
 			switch f.goType {
 			case "int":
