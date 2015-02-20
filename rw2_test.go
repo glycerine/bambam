@@ -10,16 +10,19 @@ import (
 
 func Test015WriteRead_StructWithinStruct(t *testing.T) {
 
+	tdir := NewTempDir()
+	// comment the defer out to debug any rw test failures.
+	defer tdir.Cleanup()
+
+	err := exec.Command("cp", "rw2.go.txt", tdir.DirPath+"/rw2.go").Run()
+	if err != nil {
+		panic(err)
+	}
+
+	MainArgs([]string{os.Args[0], "-o", tdir.DirPath, "rw2.go.txt"})
+
 	cv.Convey("Given bambam generated go bindings: with a struct within a struct", t, func() {
 		cv.Convey("then we should be able to write to disk, and read back the same structure", func() {
-
-			tdir := NewTempDir()
-			// comment the defer out to debug any rw test failures.
-			defer tdir.Cleanup()
-
-			MainArgs([]string{os.Args[0], "-o", tdir.DirPath, "rw2.go.txt"})
-
-			err := exec.Command("cp", "rw2.go.txt", tdir.DirPath+"/rw.go").Run()
 			cv.So(err, cv.ShouldEqual, nil)
 
 			tdir.MoveTo()
