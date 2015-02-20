@@ -274,15 +274,15 @@ func (x *Extractor) SettersToGo(goName string) string {
 		} else {
 
 			var isCapType bool = false
-			if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
+			if _, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
 				if len(f.goTypeSeq) > 1 {
-					if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
-						fmt.Println("*** yes@1", toCapType)
+					if _, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
+						//fmt.Println("*** yes@1", toCapType)
 						isCapType = true
 					}
 				}
 			} else {
-				fmt.Println("*** yes@0", toCapType)
+				//fmt.Println("*** yes@0", toCapType)
 				isCapType = true
 			}
 
@@ -447,7 +447,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				}
 			} else {
 				// handle list of struct
-				fmt.Printf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
+				VPrintf("\n\n  at struct list in SettersToCap(): f = %#v\n", f)
 				addAmpersand := "&"
 				if isPointerType(f.goTypePrefix) {
 					addAmpersand = ""
@@ -487,15 +487,15 @@ func (x *Extractor) SettersToCapn(goName string) string {
 		} else {
 
 			var isCapType bool = false
-			if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
+			if _, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
 				if len(f.goTypeSeq) > 1 {
-					if toCapType, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
-						fmt.Println("*** yes@1", toCapType)
+					if _, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
+						//fmt.Println("*** yes@1", toCapType)
 						isCapType = true
 					}
 				}
 			} else {
-				fmt.Println("*** yes@0", toCapType)
+				//fmt.Println("*** yes@0", toCapType)
 				isCapType = true
 			}
 
