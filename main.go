@@ -32,7 +32,7 @@ func main() {
 
 // allow invocation from test
 func MainArgs(args []string) {
-	fmt.Println(os.Args)
+	//fmt.Println(os.Args)
 	os.Args = args
 
 	flag.Usage = use
@@ -40,6 +40,7 @@ func MainArgs(args []string) {
 		use()
 	}
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	debug := flag.Bool("debug", false, "print lots of debug info as we process.")
 	verrequest := flag.Bool("version", false, "request git commit hash used to build this bambam")
 	outdir := flag.String("o", "odir", "specify output directory")

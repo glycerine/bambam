@@ -51,6 +51,10 @@ func (d *TempDir) Cleanup() {
 	if err != nil {
 		panic(err)
 	}
+	err = os.Chdir(d.OrigDir)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (d *TempDir) TempFile() *os.File {
