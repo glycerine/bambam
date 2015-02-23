@@ -215,35 +215,35 @@ func (s *%s) Save(w io.Writer) error {
 }
  `, s.goName, s.goName))
 
-		x.LoadCode[s.goName] = []byte(fmt.Sprintf(` 
+		x.LoadCode[s.goName] = []byte(fmt.Sprintf(`
 func (s *%s) Load(r io.Reader) error {
   	capMsg, err := capn.ReadFromStream(r, nil)
   	if err != nil {
   		//panic(fmt.Errorf("capn.ReadFromStream error: %%s", err))
         return err
   	}
-  	z := %sReadRoot%s(capMsg)
+  	z := ReadRoot%s(capMsg)
       %sToGo(z, s)
    return nil
 }
-`, s.goName, x.packageDot(), s.capName, s.capName))
+`, s.goName, s.capName, s.capName))
 
 		x.ToGoCode[s.goName] = []byte(fmt.Sprintf(`
-func %sToGo(src %s, dest *%s) *%s { 
-  if dest == nil { 
-    dest = &%s{} 
+func %sToGo(src %s, dest *%s) *%s {
+  if dest == nil {
+    dest = &%s{}
   }
 %s
   return dest
-} 
+}
 `, s.capName, s.capName, s.goName, s.goName, s.goName, x.SettersToGo(s.goName)))
 
 		x.ToCapnCode[s.goName] = []byte(fmt.Sprintf(`
-func %sGoToCapn(seg *capn.Segment, src *%s) %s { 
+func %sGoToCapn(seg *capn.Segment, src *%s) %s {
   dest := AutoNew%s(seg)
 %s
   return dest
-} 
+}
 `, s.goName, s.goName, s.capName, s.capName, x.SettersToCapn(s.goName)))
 
 	}
@@ -277,12 +277,10 @@ func (x *Extractor) SettersToGo(goName string) string {
 			if _, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
 				if len(f.goTypeSeq) > 1 {
 					if _, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
-						//fmt.Println("*** yes@1", toCapType)
 						isCapType = true
 					}
 				}
 			} else {
-				//fmt.Println("*** yes@0", toCapType)
 				isCapType = true
 			}
 
@@ -490,12 +488,10 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			if _, ok := x.goType2capTypeCache[f.goTypeSeq[0]]; !ok {
 				if len(f.goTypeSeq) > 1 {
 					if _, ok := x.goType2capTypeCache[f.goTypeSeq[1]]; ok {
-						//fmt.Println("*** yes@1", toCapType)
 						isCapType = true
 					}
 				}
 			} else {
-				//fmt.Println("*** yes@0", toCapType)
 				isCapType = true
 			}
 
@@ -1560,7 +1556,7 @@ func %sTo%s(p %s) %s {
         %s
 	}
 	return v
-} 
+}
 `, capTypeThenList, canonGoType, f.singleCapListType, collapGoType, collapGoType, x.ListToSliceSetLHS_RHS(f.baseIsIntrinsic, capBaseType, goBaseType)))
 
 	VPrintf("\n\n GenerateListHelpers done for field '%#v'\n\n", f)
