@@ -14,7 +14,7 @@ You'll need a recent (up-to-date) version of go-capnproto. If you installed go-c
 
 [Capnproto](http://kentonv.github.io/capnproto/) and [go-capnproto](https://github.com/glycerine/go-capnproto) should both be installed and on your PATH.
 
-to install
+to install: *run make*. This lets us record the git commit in LASTGITCOMMITHASH to provide accurate version info. Otherwise you'll get an 'undefined: LASTGITCOMMITHASH' failure.
 --------
 ~~~
 # be sure go-capnproto and capnpc are installed first.
