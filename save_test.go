@@ -34,7 +34,7 @@ func (s *RWTest) Load(r io.Reader) error {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
         return err
 	}
-	z := testpkg.ReadRootRWTestCapn(capMsg)
+	z := ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
     return nil
 }
@@ -115,7 +115,7 @@ func (s *RWTest) Load(r io.Reader) error {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
         return err
 	}
-	z := testpkg.ReadRootRWTestCapn(capMsg)
+	z := ReadRootRWTestCapn(capMsg)
     RWTestCapnToGo(z, s)
     return nil
 }

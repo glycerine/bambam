@@ -44,7 +44,7 @@ struct OuterCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
           return err
     	}
-    	z := testpkg.ReadRootInnerCapn(capMsg)
+    	z := ReadRootInnerCapn(capMsg)
         InnerCapnToGo(z, s)
      return nil
   }
@@ -86,7 +86,7 @@ struct OuterCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
           return err
     	}
-    	z := testpkg.ReadRootOuterCapn(capMsg)
+    	z := ReadRootOuterCapn(capMsg)
         OuterCapnToGo(z, s)
      return nil
   }

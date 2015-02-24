@@ -103,7 +103,7 @@ struct S1Capn { myBigs  @0:   List(BigCapn); }
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootBigCapn(capMsg)
+    	z := ReadRootBigCapn(capMsg)
         BigCapnToGo(z, s)
         return nil
     }
@@ -135,7 +135,7 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootS1Capn(capMsg)
+    	z := ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
         return nil
     }
@@ -203,7 +203,7 @@ struct MiniCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootCooperCapn(capMsg)
+    	z := ReadRootCooperCapn(capMsg)
         CooperCapnToGo(z, s)
         return nil
   }
@@ -283,7 +283,7 @@ struct MiniCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootMiniCapn(capMsg)
+    	z := ReadRootMiniCapn(capMsg)
         MiniCapnToGo(z, s)
         return nil
   }
@@ -365,7 +365,7 @@ func (s *Cooper) Load(r io.Reader) error {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
         return err
 	}
-	z := testpkg.ReadRootCooperCapn(capMsg)
+	z := ReadRootCooperCapn(capMsg)
 	CooperCapnToGo(z, s)
     return nil
 }

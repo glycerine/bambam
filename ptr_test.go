@@ -53,7 +53,7 @@ struct S1Capn { ptrs @0: List(BigCapn); }
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootBigCapn(capMsg)
+    	z := ReadRootBigCapn(capMsg)
         BigCapnToGo(z, s)
         return nil
     }
@@ -90,7 +90,7 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootS1Capn(capMsg)
+    	z := ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
         return nil
     }
@@ -171,7 +171,7 @@ struct S1Capn { ptrs      @0:   List(BigCapn); straight  @1:   List(BigCapn); }
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootBigCapn(capMsg)
+    	z := ReadRootBigCapn(capMsg)
         BigCapnToGo(z, s)
         return nil
     }
@@ -217,7 +217,7 @@ func BigGoToCapn(seg *capn.Segment, src *Big) BigCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootS1Capn(capMsg)
+    	z := ReadRootS1Capn(capMsg)
         S1CapnToGo(z, s)
         return nil
     }

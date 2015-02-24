@@ -33,7 +33,7 @@ struct MatrixCapn {
     		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
             return err
     	}
-    	z := testpkg.ReadRootMatrixCapn(capMsg)
+    	z := ReadRootMatrixCapn(capMsg)
         MatrixCapnToGo(z, s)
         return nil
   }
