@@ -137,7 +137,7 @@ These new versions include capid tags on all public fields of structs. You shoul
 
 If you are feeling especially bold, `bambam -OVERWRITE my.go` will replace my.go with the capid tagged version. For safety, only do this on backed-up and version controlled source files.
 
-By default only public fields (with Captial first letter in their name) are tagged. The -X flag ignores the public/private distinction, and tags all fields.
+By default only public fields (with a Capital first letter in their name) are tagged. The -X flag ignores the public/private distinction, and tags all fields.
 
 The capid tags allow the capnproto schema evolution to function properly as you add new fields to structs. If you don't include the capid tags, your serialization code won't be backwards compatible as you change your structs.
 
