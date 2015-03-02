@@ -119,7 +119,7 @@ func main() {
 what Go types does bambam recognize?
 ----------------------------------------
 
-Supported: structs, slices, and primitve/scalar types are supported. Structs that contain structs are supported. You have both slices of scalars (e.g. `[]int`) and slices of structs (e.g. `[]MyStruct`) available.
+Supported: structs, slices, and primitive/scalar types are supported. Structs that contain structs are supported. You have both slices of scalars (e.g. `[]int`) and slices of structs (e.g. `[]MyStruct`) available.
 
 We handle `[][]T`, but not `[][][]T`, where `T` is a struct or primitive type. The need for triply nested slices is expected to be rare. Interpose a struct after two slices if you need to go deeper.
 
