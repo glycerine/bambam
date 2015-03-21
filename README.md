@@ -182,12 +182,12 @@ struct NumberCapn {
 
 Explanation: Using a `// capname:"newName"` comment on the line right before a struct definition will cause `bambam` to use 'newName' as the name for the corresponding struct in the capnproto schema. Otherwise the corresponding struct will simply uppercase the first letter of the orignal Go struct, and append "Capn". For example: a Go struct called `number` would induce a parallel generated capnp struct called `NumberCapn`.
 
-special ignored field names
+windows build script
 ---------------------------
-`XXX_unrecognized` fields are currently ignored by default, to make the transition from other systems easier.
+see `build.cmd`. Thanks to Klaus Post (http://klauspost.com) for contributing this.
 
 -----
 -----
 
-Copyright (c) 2014, Jason E. Aten, Ph.D.
+Copyright (c) 2015, Jason E. Aten, Ph.D.
 
