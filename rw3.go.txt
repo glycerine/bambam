@@ -5,7 +5,7 @@ import (
 	"os"
 	"reflect"
     "bytes"
-	"github.com/shurcooL/go-goon"
+	"github.com/glycerine/go-goon"
 )
 
 // used in rw3_test.go for round-trip testing write/read
