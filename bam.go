@@ -299,15 +299,55 @@ func (x *Extractor) SettersToGo(goName string) string {
 			switch f.goType {
 			case "int":
 				fmt.Fprintf(&buf, "  dest.%s = int(src.%s())\n", f.goName, f.goCapGoName)
-			case "int64":
-				fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.goCapGoName)
-			case "uint64":
-				fmt.Fprintf(&buf, "  dest.%s = uint64(src.%s())\n", f.goName, f.goCapGoName)
-			case "float64":
-				fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.goCapGoName)
-			case "string":
+
+			default:
 				fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
 			}
+			/*
+				case "string":
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "bool":
+					//fmt.Fprintf(&buf, "  dest.%s = bool(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+
+				case "int8":
+					//fmt.Fprintf(&buf, "  dest.%s = int8(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "int16":
+					//fmt.Fprintf(&buf, "  dest.%s = int16(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "int32":
+					//fmt.Fprintf(&buf, "  dest.%s = int32(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "int64":
+					fmt.Fprintf(&buf, "  dest.%s = int64(src.%s())\n", f.goName, f.goCapGoName)
+					//fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+
+				case "uint8":
+					//fmt.Fprintf(&buf, "  dest.%s = uint8(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "uint16":
+					//fmt.Fprintf(&buf, "  dest.%s = uint16(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "uint32":
+					//fmt.Fprintf(&buf, "  dest.%s = uint32(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "uint64":
+					fmt.Fprintf(&buf, "  dest.%s = uint64(src.%s())\n", f.goName, f.goCapGoName)
+					//fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+
+				case "float32":
+					//fmt.Fprintf(&buf, "  dest.%s = float32(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				case "float64":
+					//fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+
+				case "byte":
+					//fmt.Fprintf(&buf, "  dest.%s = byte(src.%s())\n", f.goName, f.goCapGoName)
+					fmt.Fprintf(&buf, "  dest.%s = src.%s()\n", f.goName, f.goCapGoName)
+				}
+			*/
 		}
 		i++
 	}
@@ -510,6 +550,7 @@ func (x *Extractor) SettersToCapn(goName string) string {
 			switch f.goType {
 			case "int":
 				fmt.Fprintf(&buf, "  dest.Set%s(int64(src.%s))\n", f.goCapGoName, f.goName)
+			/* // experiment with simplifying this switch down to nothing
 			case "int64":
 				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			case "uint64":
@@ -518,7 +559,55 @@ func (x *Extractor) SettersToCapn(goName string) string {
 				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			case "string":
 				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+			*/
+			default:
+				fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
 			}
+			/*
+				// new
+				switch f.goType {
+				case "string":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "int":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "bool":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+
+				case "int8":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "int16":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "int32":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "int64":
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+
+				case "uint8":
+					//fmt.Fprintf(&buf, "  dest.%s = uint8(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "uint16":
+					//fmt.Fprintf(&buf, "  dest.%s = uint16(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "uint32":
+					//fmt.Fprintf(&buf, "  dest.%s = uint32(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "uint64":
+					//fmt.Fprintf(&buf, "  dest.%s = uint64(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+
+				case "float32":
+					//fmt.Fprintf(&buf, "  dest.%s = float32(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+				case "float64":
+					//fmt.Fprintf(&buf, "  dest.%s = float64(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+
+				case "byte":
+					//fmt.Fprintf(&buf, "  dest.%s = byte(src.%s())\n", f.goCapGoName, f.goName)
+					fmt.Fprintf(&buf, "  dest.Set%s(src.%s)\n", f.goCapGoName, f.goName)
+
+				}
+			*/
 		}
 	}
 	return string(buf.Bytes())

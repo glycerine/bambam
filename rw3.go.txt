@@ -24,6 +24,7 @@ type Dude struct {
     Age  int
     Addr *Address
     Fro Hair
+    Allprim AllPrim 
 }
 
 type Address struct {
@@ -35,6 +36,25 @@ type Hair struct {
   Desc string
 }
 
+type AllPrim struct {
+     S string
+     I int
+     B bool
+     I8 int8
+     I16 int16
+     I32 int32
+     I64 int64
+
+     Ui8 uint8
+     Ui16 uint16
+     Ui32 uint32
+     Ui64 uint64
+
+     F32 float32
+     F64 float64
+     By  byte
+}
+
 
 func main() {
 
@@ -44,6 +64,22 @@ func main() {
         Addr: &Address{Street: "123 Main Street", Zip: "11111"},
         Anon: Anon{SerialNum: 52},
         Fro: Hair{ Desc: "awesome"},
+        Allprim: AllPrim{
+          S: "mystring",
+          I: 43,
+          B: true,
+          I8: -7,
+          I16: -16,
+          I32: -32,
+          I64: -64,
+          Ui8: 9,
+          Ui16: 17,
+          Ui32: 33,
+          Ui64: 65,
+          F32: 2.7,
+          F64: 3.14,
+          By: 'a',
+        },
 	}
 
 	var o bytes.Buffer

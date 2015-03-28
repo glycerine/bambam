@@ -62,7 +62,7 @@ func ExtraCapnToGo(src ExtraCapn, dest *Extra) *Extra {
   if dest == nil {
      dest = &Extra{}
   }
-  dest.A = uint64(src.A())
+  dest.A = src.A()
   return dest }
 `)
 
@@ -70,7 +70,7 @@ func ExtraCapnToGo(src ExtraCapn, dest *Extra) *Extra {
 				cv.So(toCapnCode, ShouldMatchModuloWhiteSpace, `
 func ExtraGoToCapn(seg *capn.Segment, src *Extra) ExtraCapn {
   dest := AutoNewExtraCapn(seg)
-  dest.SetA(uint64(src.A))
+  dest.SetA(src.A)
   return dest }
 `)
 			})

@@ -294,7 +294,7 @@ struct MiniCapn {
     if dest == nil { 
       dest = &Mini{} 
     }
-    dest.A = int64(src.A())
+    dest.A = src.A()
   
     return dest
   } 
