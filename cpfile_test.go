@@ -14,7 +14,7 @@ func TestCpCopiesFilesIntoDirHier(t *testing.T) {
 	cv.Convey("Cp() function should create directories in destinationPath if need be", t, func() {
 
 		origdir, tmpdir := MakeAndMoveToTempDir()
-		//defer TempDirCleanup(origdir, tmpdir)
+		defer TempDirCleanup(origdir, tmpdir)
 		hier := fmt.Sprintf("a%cb%cc%c", os.PathSeparator, os.PathSeparator, os.PathSeparator)
 		goal := hier + "cpfile.go"
 		err := Cp(origdir+string(os.PathSeparator)+"cpfile.go", tmpdir+string(os.PathSeparator)+hier)

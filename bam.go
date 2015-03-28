@@ -638,7 +638,7 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 	// run through files, printing
 	for _, s := range x.srcFiles {
 		if s.filename != "" {
-			err := x.PrettyPrint(s.fset, s.astFile, x.compileDir.DirPath+"/"+s.filename)
+			err := x.PrettyPrint(s.fset, s.astFile, x.compileDir.DirPath+string(os.PathSeparator)+s.filename)
 			if err != nil {
 				return err
 			}
@@ -646,7 +646,7 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 	}
 
 	if x.overwrite {
-		bk := x.compileDir.DirPath + "/bk/"
+		bk := fmt.Sprintf("%s%cbk%c", x.compileDir.DirPath, os.PathSeparator, os.PathSeparator)
 		err := os.MkdirAll(bk, 0755)
 		if err != nil {
 			panic(err)
@@ -659,7 +659,7 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 					panic(err)
 				}
 				// overwrite
-				err = Cp(x.compileDir.DirPath+"/"+s.filename, s.filename)
+				err = Cp(x.compileDir.DirPath+string(os.PathSeparator)+s.filename, s.filename)
 				if err != nil {
 					panic(err)
 				}

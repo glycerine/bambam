@@ -28,10 +28,10 @@ func Cp(originPath, destinationPath string) (err error) {
 
 	if FileExists(destinationPath) {
 		// okay, good to go
-		fmt.Printf("\n okay, destinationPath exists as a file\n")
+		//fmt.Printf("\n okay, destinationPath exists as a file\n")
 	} else {
 		// no such file yet
-		fmt.Printf("\n okay, destinationPath '%s': no such file yet.\n", destinationPath)
+		//fmt.Printf("\n okay, destinationPath '%s': no such file yet.\n", destinationPath)
 
 		// set dirname and target
 
@@ -43,7 +43,7 @@ func Cp(originPath, destinationPath string) (err error) {
 			// the final path component is taken to be the target file name, unless
 			// it names an existing directory.
 			if DirExists(destinationPath) {
-				fmt.Printf("\n okay, destinationPath '%s' exists as a directory\n", destinationPath)
+				//fmt.Printf("\n okay, destinationPath '%s' exists as a directory\n", destinationPath)
 				dirname = path.Dir(destinationPath)
 				target = path.Base(originPath)
 
@@ -53,26 +53,26 @@ func Cp(originPath, destinationPath string) (err error) {
 			}
 		}
 
-		fmt.Printf("\n dirname = '%s'   target = '%s'\n", dirname, target)
+		//fmt.Printf("\n dirname = '%s'   target = '%s'\n", dirname, target)
 
 		// is it a directory that exists?
 		if DirExists(dirname) {
-			fmt.Printf("\n okay, dirname '%s' exists as a directory\n", dirname)
+			//fmt.Printf("\n okay, dirname '%s' exists as a directory\n", dirname)
 		} else {
-			fmt.Printf("\n okay, dirname '%s' is not an existing directory, try to make needed directories\n", dirname)
+			//fmt.Printf("\n okay, dirname '%s' is not an existing directory, try to make needed directories\n", dirname)
 			// dirname is not an existing directory, try to mkdir -p make the needed dirs.
 
 			err = os.MkdirAll(dirname, 0755)
 			if err != nil {
 				return fmt.Errorf("could not create destination directory path(s) with MkdirAll on '%s', error: '%s'", dirname, err)
 			} else {
-				fmt.Printf("\n made dirname: '%s'\n", dirname)
+				//fmt.Printf("\n made dirname: '%s'\n", dirname)
 			}
 		}
 
 	}
 	// INVAR: we should be good to copy to dirname
-	fmt.Printf("\n INVAR: we should be good to copy to dirname: '%s'\n", dirname)
+	//fmt.Printf("\n INVAR: we should be good to copy to dirname: '%s'\n", dirname)
 
 	fullpath := appendFilename(dirname, target)
 
