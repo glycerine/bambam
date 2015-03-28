@@ -654,12 +654,12 @@ func (x *Extractor) CopySourceFilesAddCapidTag() error {
 		for _, s := range x.srcFiles {
 			if s.filename != "" {
 				// make a backup
-				err := exec.Command("/bin/cp", "-p", s.filename, bk+s.filename).Run()
+				err := Cp(s.filename, bk+s.filename)
 				if err != nil {
 					panic(err)
 				}
 				// overwrite
-				err = exec.Command("/bin/cp", "-p", x.compileDir.DirPath+"/"+s.filename, s.filename).Run()
+				err = Cp(x.compileDir.DirPath+"/"+s.filename, s.filename)
 				if err != nil {
 					panic(err)
 				}
