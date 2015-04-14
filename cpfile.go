@@ -28,7 +28,9 @@ func Cp(originPath, destinationPath string) (err error) {
 
 	if FileExists(destinationPath) {
 		// okay, good to go
-		//fmt.Printf("\n okay, destinationPath exists as a file\n")
+		//fmt.Printf("\n okay, destinationPath '%s' exists as a file\n", destinationPath)
+		dirname = path.Dir(destinationPath)
+		target = path.Base(destinationPath)
 	} else {
 		// no such file yet
 		//fmt.Printf("\n okay, destinationPath '%s': no such file yet.\n", destinationPath)
@@ -89,13 +91,17 @@ func Cp(originPath, destinationPath string) (err error) {
 	}
 
 	// proceed to copy
+	//fmt.Printf("os.Open with originPath = '%s'\n", originPath)
 	src, err := os.Open(originPath)
 	if err != nil {
 		return err
 	}
 	defer src.Close()
+
+	//fmt.Printf("os.Create with fullpath = '%s'\n", fullpath)
 	dest, err := os.Create(fullpath)
 	if err != nil {
+		//fmt.Printf("returning early after attempt os.Create with fullpath = '%s'\n", fullpath)
 		return err
 	}
 	defer func() {
