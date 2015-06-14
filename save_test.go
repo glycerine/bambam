@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	cv "github.com/smartystreets/goconvey/convey"
+	cv "github.com/glycerine/goconvey/convey"
 )
 
 func Test006Save1(t *testing.T) {

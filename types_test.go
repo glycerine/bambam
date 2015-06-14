@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	cv "github.com/smartystreets/goconvey/convey"
+	cv "github.com/glycerine/goconvey/convey"
 )
 
 func TestBasicTypesInStruct(t *testing.T) {

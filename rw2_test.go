@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	cv "github.com/smartystreets/goconvey/convey"
+	cv "github.com/glycerine/goconvey/convey"
 )
 
 func Test015WriteRead_StructWithinStruct(t *testing.T) {

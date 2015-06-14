@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	cv "github.com/smartystreets/goconvey/convey"
+	cv "github.com/glycerine/goconvey/convey"
 )
 
 func TestNestedStructs016(t *testing.T) {
