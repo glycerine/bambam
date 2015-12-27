@@ -917,11 +917,20 @@ func (x *Extractor) ExtractStructsFromOneFile(src interface{}, fname string) ([]
 
 											if len(fld.Names) == 0 {
 												// field without name: embedded/anonymous struct
-												typeName := fld.Type.(*ast.Ident).Name
-
-												err = x.GenerateStructField(typeName, "", typeName, fld, NotList, fld.Tag, YesEmbedded, []string{typeName})
-												if err != nil {
-													return []byte{}, err
+												var typeName string
+												switch nmmm := fld.Type.(type) {
+												case *ast.StarExpr:
+													typeName = nmmm.X.(*ast.Ident).Name
+													err = x.GenerateStructField(typeName, "*", typeName, fld, NotList, fld.Tag, YesEmbedded, []string{typeName})
+													if err != nil {
+														return []byte{}, err
+													}
+												case *ast.Ident:
+													typeName = nmmm.Name
+													err = x.GenerateStructField(typeName, "", typeName, fld, NotList, fld.Tag, YesEmbedded, []string{typeName})
+													if err != nil {
+														return []byte{}, err
+													}
 												}
 
 											} else {
