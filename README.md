@@ -1,7 +1,7 @@
 bambam: auto-generate capnproto schema from your golang source files.
 ======
 
-Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project used to mean writing alot of boilerplate.
+Adding [capnproto serialization](https://github.com/glycerine/go-capnproto) to an existing Go project used to mean writing a lot of boilerplate.
 
 Not anymore.
 
